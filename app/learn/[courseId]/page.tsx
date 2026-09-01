@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
@@ -28,151 +28,86 @@ interface ModuleData {
   quiz: QuizQuestion;
 }
 
-const COURSE_MODULES: ModuleData[] = [
-  {
-    id: 1,
-    week: 'Module 1',
-    title: 'Python Core Architecture & Microservice Foundations',
-    duration: '28:40 mins',
-    videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc?autoplay=1&rel=0',
-    summary: 'Mastering execution pipelines, memory allocation, and asynchronous programming in production Python setups.',
-    keyPoints: [
-      'Understand event loop mechanics and non-blocking I/O operations.',
-      'Construct scalable project modularity for enterprise microservices.',
-      'Configure environment variables and automated continuous integration.'
-    ],
-    codeSnippet: `// Asynchronous Python Microservice Handler\nimport asyncio\nfrom fastapi import FastAPI\n\napp = FastAPI(title="Sacred Mind Core")\n\n@app.get("/api/v1/health")\nasync def health_check():\n    return {"status": "ACTIVE", "node": "Mohali Lab Phase 8"}`,
-    quiz: {
-      question: 'Why do we utilize asynchronous programming (async/await) in microservice architectures?',
-      options: [
-        'To reduce RAM memory to zero',
-        'To handle thousands of concurrent I/O operations without blocking the server thread',
-        'To automatically compile Python into machine C code'
-      ],
-      correctIndex: 1,
-      explanation: 'Async/await allows non-blocking execution, enabling microservices to handle high-concurrency requests seamlessly.'
-    }
-  },
-  {
-    id: 2,
-    week: 'Module 2',
-    title: 'Automated AI Workflow Pipelines (Make.com & n8n)',
-    duration: '35:15 mins',
-    videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/aircAruvnKk?autoplay=1&rel=0',
-    summary: 'Designing autonomous webhook pipelines, multi-step error boundaries, and CRM synchronization.',
-    keyPoints: [
-      'Connect secure webhook endpoints with HMAC authentication tokens.',
-      'Implement automated retries and alert fallbacks for zero data loss.',
-      'Chain LLM prompts for automatic data classification and customer replies.'
-    ],
-    codeSnippet: `// Webhook Payload Processor\nexport async function processWebhook(req: Request) {\n  const payload = await req.json();\n  const isVerified = verifySignature(req.headers.get("x-signature"));\n  if (!isVerified) throw new Error("Unauthorized Webhook Request");\n  return { status: "QUEUED", executionId: payload.id };\n}`,
-    quiz: {
-      question: 'What is the primary defense mechanism against unauthorized webhook spam/replay attacks?',
-      options: [
-        'HMAC Secret Signatures & Timestamp verification headers',
-        'Changing the port number every 5 minutes',
-        'Using plain text HTTP URLs'
-      ],
-      correctIndex: 0,
-      explanation: 'Verifying cryptographic signatures (HMAC) on incoming webhooks ensures payload integrity and authenticity.'
-    }
-  },
-  {
-    id: 3,
-    week: 'Module 3',
-    title: 'Full-Stack Next.js 15 & High-Speed Cloud Routing',
-    duration: '42:10 mins',
-    videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/843nec-IvW0?autoplay=1&rel=0',
-    summary: 'Server Components, React Streaming, Suspense boundaries, and Supabase RLS database integration.',
-    keyPoints: [
-      'Render pages on edge servers with near-instant Time to First Byte (TTFB).',
-      'Secure customer data using Row-Level Security (RLS) PostgreSQL policies.',
-      'Deploy serverless API routes with automated caching and revalidation.'
-    ],
-    codeSnippet: `// Next.js Server Component Data Fetcher\nimport { createClient } from '@/lib/supabase/server';\n\nexport default async function AnalyticsDashboard() {\n  const supabase = createClient();\n  const { data: metrics } = await supabase.from('client_metrics').select('*');\n  return <DashboardView data={metrics} />;\n}`,
-    quiz: {
-      question: 'What is the main advantage of Next.js React Server Components (RSC)?',
-      options: [
-        'They run only inside mobile apps',
-        'Zero client-side JavaScript bundle overhead for data-fetching logic',
-        'They disable all CSS styling'
-      ],
-      correctIndex: 1,
-      explanation: 'Server Components execute on the server, keeping sensitive keys secure and sending zero JS bundle to the browser.'
-    }
-  },
-  {
-    id: 4,
-    week: 'Module 4',
-    title: 'Deep Learning, Neural Networks & Autonomous Agents',
-    duration: '48:30 mins',
-    videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/tPYj3fFJGjk?autoplay=1&rel=0',
-    summary: 'Vector databases, LangChain pipelines, retrieval augmented generation (RAG), and agentic memory.',
-    keyPoints: [
-      'Generate dense embeddings and perform cosine similarity searches.',
-      'Build multi-agent feedback loops for automated decision making.',
-      'Fine-tune open-weight models for specialized domain tasks.'
-    ],
-    codeSnippet: `// LangChain Autonomous Agent Execution\nimport { OpenAIEmbeddings } from '@langchain/openai';\nimport { PineconeStore } from '@langchain/pinecone';\n\nexport async function runRagPipeline(query: string) {\n  const vectorStore = await PineconeStore.fromExistingIndex(new OpenAIEmbeddings(), { pineconeIndex });\n  return await vectorStore.similaritySearch(query, 4);\n}`,
-    quiz: {
-      question: 'In a RAG (Retrieval-Augmented Generation) pipeline, what is the role of Vector Databases?',
-      options: [
-        'To store video files in MP4 format',
-        'To retrieve the most relevant semantic context for LLMs in sub-second time',
-        'To compile JavaScript files'
-      ],
-      correctIndex: 1,
-      explanation: 'Vector databases perform high-speed similarity search across high-dimensional embeddings to feed relevant context to LLMs.'
-    }
-  },
-  {
-    id: 5,
-    week: 'Module 5',
-    title: 'Production Staging Deployment & Lab Certification',
-    duration: '31:50 mins',
-    videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/2eebptXfEvw?autoplay=1&rel=0',
-    summary: 'Final client capstone deployment, performance stress testing, and official Sacred Mind certificate generation.',
-    keyPoints: [
-      'Run stress testing and concurrency benchmarks before going live.',
-      'Configure custom domain DNS, SSL certificates, and WAF rules.',
-      'Generate official verifiable digital certificate with QR validation.'
-    ],
-    codeSnippet: `// Final Certificate Verification Endpoint\nexport async function generateCertification(studentId: string, courseId: string) {\n  return {\n    verified: true,\n    certificateId: "SM-" + crypto.randomUUID().slice(0, 8).toUpperCase(),\n    institution: "Sacred Mind Tech Labs - Phase 8 Mohali",\n    status: "GRADUATED"\n  };\n}`,
-    quiz: {
-      question: 'What is the final requirement to successfully pass industrial training certification at Sacred Mind?',
-      options: [
-        'Deploying a fully functional, tested capstone project and completing all module checkpoints',
-        'Watching only the first 5 minutes of a video',
-        'Sending a blank email'
-      ],
-      correctIndex: 0,
-      explanation: 'Industrial Certification requires completing practical projects and demonstrating core competencies across all modules.'
-    }
-  }
-];
-
-export default function StudentClassroom() {
+export default function StudentClassroom({ params }: { params: { courseId: string } }) {
+  const [courseModules, setCourseModules] = useState<ModuleData[]>([]);
   const [unlockedModules, setUnlockedModules] = useState<number[]>([1]);
   const [activeModuleIndex, setActiveModuleIndex] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'quiz' | 'notes' | 'code'>('quiz');
   
-  // Quiz State for Current Module
+  // Quiz State
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizPassed, setQuizPassed] = useState(false);
 
-  // In-Class AI Tutor Chat State
+  // AI Tutor State
   const [chatMessages, setChatMessages] = useState<{ sender: 'user' | 'ai'; text: string }[]>([
     { sender: 'ai', text: 'Hello! I am your Sacred Mind AI Tutor. Watch the full lecture, solve the checkpoint question below to unlock the next module, and ask any doubt anytime!' }
   ]);
   const [userInput, setUserInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const currentModule = COURSE_MODULES[activeModuleIndex];
+  // Dynamic Content Generation based on courseId
+  useEffect(() => {
+    const fetchCourseContent = async () => {
+      setLoading(true);
+      // We will generate 5 modules for whichever course is selected
+      const generatedModules: ModuleData[] = [];
+      
+      for (let i = 0; i < 5; i++) {
+        const moduleTitle = `Phase ${i + 1}: ${params.courseId.includes('lang') ? 'Language Fundamentals' : 'Core Architecture'}`;
+        
+        try {
+          const res = await fetch('/api/ai/module-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              courseId: params.courseId,
+              moduleTitle: moduleTitle,
+              moduleIndex: i
+            })
+          });
+          const data = await res.json();
+          
+          if (data.success) {
+             generatedModules.push({
+               id: i + 1,
+               week: `Module ${i + 1}`,
+               title: data.data.module,
+               duration: data.data.videoDetails.duration,
+               videoEmbedUrl: data.data.videoDetails.videoUrl,
+               summary: data.data.smartNotes.summary,
+               keyPoints: data.data.smartNotes.keyConcepts,
+               codeSnippet: data.data.smartNotes.codeSnippet,
+               quiz: data.data.quiz
+             });
+          }
+        } catch (e) {
+          console.error("Error fetching module", e);
+        }
+      }
+      
+      setCourseModules(generatedModules);
+      setLoading(false);
+    };
+
+    fetchCourseContent();
+  }, [params.courseId]);
+
+  if (loading || courseModules.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
+        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-purple-400 font-mono">Generating dynamic AI curriculum for {params.courseId}...</p>
+      </div>
+    );
+  }
+
+  const currentModule = courseModules[activeModuleIndex];
 
   // Switch Module handler
   const handleSelectModule = (index: number) => {
-    if (!unlockedModules.includes(COURSE_MODULES[index].id)) {
+    if (!unlockedModules.includes(courseModules[index].id)) {
       alert("🔒 Please pass the current module's checkpoint quiz to unlock this chapter!");
       return;
     }
@@ -191,7 +126,7 @@ export default function StudentClassroom() {
     if (selectedAnswer === currentModule.quiz.correctIndex) {
       setQuizPassed(true);
       const nextModuleId = currentModule.id + 1;
-      if (!unlockedModules.includes(nextModuleId) && nextModuleId <= COURSE_MODULES.length) {
+      if (!unlockedModules.includes(nextModuleId) && nextModuleId <= courseModules.length) {
         setUnlockedModules(prev => [...prev, nextModuleId]);
       }
     } else {
@@ -201,7 +136,7 @@ export default function StudentClassroom() {
 
   // Move to next unlocked module
   const handleNextModule = () => {
-    if (activeModuleIndex < COURSE_MODULES.length - 1) {
+    if (activeModuleIndex < courseModules.length - 1) {
       handleSelectModule(activeModuleIndex + 1);
     }
   };
@@ -218,7 +153,7 @@ export default function StudentClassroom() {
       setIsTyping(false);
       setChatMessages(prev => [...prev, {
         sender: 'ai',
-        text: `Regarding "${q}" in ${currentModule.title}: Check your async handlers and remember that ${currentModule.quiz.explanation} You can also review the Code tab for exact syntax!`
+        text: `Regarding "${q}" in ${currentModule.title}: Let me analyze that for the ${params.courseId} course. ${currentModule.quiz.explanation}`
       }]);
     }, 750);
   };
@@ -235,12 +170,12 @@ export default function StudentClassroom() {
           </Link>
           <span className="text-slate-700 hidden sm:inline">|</span>
           <span className="text-xs text-purple-300 font-mono bg-purple-950/50 px-3 py-1 rounded-md border border-purple-800/40 hidden sm:inline">
-            Interactive Classroom • Phase 8 Mohali
+            Interactive Classroom: {params.courseId}
           </span>
         </div>
         <div className="flex items-center space-x-3">
           <div className="text-xs text-slate-400">
-            Progress: <strong className="text-white">{Math.round((unlockedModules.length / COURSE_MODULES.length) * 100)}%</strong>
+            Progress: <strong className="text-white">{Math.round((unlockedModules.length / courseModules.length) * 100)}%</strong>
           </div>
           <Link href="/courses" className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 transition">
             Exit ✕
@@ -255,11 +190,11 @@ export default function StudentClassroom() {
         <div className="lg:col-span-3 border-r border-slate-800/80 bg-slate-950/70 p-4 overflow-y-auto max-h-[calc(100vh-4rem)]">
           <div className="flex items-center justify-between mb-4 px-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Course Syllabus</h3>
-            <span className="text-[10px] text-purple-400 font-mono">{unlockedModules.length}/{COURSE_MODULES.length} Unlocked</span>
+            <span className="text-[10px] text-purple-400 font-mono">{unlockedModules.length}/{courseModules.length} Unlocked</span>
           </div>
 
           <div className="space-y-2.5">
-            {COURSE_MODULES.map((mod, idx) => {
+            {courseModules.map((mod, idx) => {
               const isUnlocked = unlockedModules.includes(mod.id);
               const isActive = activeModuleIndex === idx;
 
@@ -282,7 +217,7 @@ export default function StudentClassroom() {
                   </div>
 
                   {isUnlocked ? (
-                    unlockedModules.includes(mod.id + 1) || (idx === COURSE_MODULES.length - 1 && quizPassed) ? (
+                    unlockedModules.includes(mod.id + 1) || (idx === courseModules.length - 1 && quizPassed) ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                     ) : (
                       <ChevronRight className="w-5 h-5 text-purple-400 shrink-0" />
@@ -344,7 +279,7 @@ export default function StudentClassroom() {
               className={`pb-3 border-b-2 transition flex items-center space-x-2 ${activeTab === 'code' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
             >
               <Code2 className="w-4 h-4" />
-              <span>Live Code</span>
+              <span>Live Content</span>
             </button>
           </div>
 
@@ -421,12 +356,12 @@ export default function StudentClassroom() {
                     Submit & Verify Answer
                   </button>
                 ) : (
-                  activeModuleIndex < COURSE_MODULES.length - 1 ? (
+                  activeModuleIndex < courseModules.length - 1 ? (
                     <button
                       onClick={handleNextModule}
                       className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white transition shadow-lg shadow-emerald-600/25 flex items-center justify-center space-x-2"
                     >
-                      <span>Proceed to Next Module ({COURSE_MODULES[activeModuleIndex + 1].week})</span>
+                      <span>Proceed to Next Module ({courseModules[activeModuleIndex + 1].week})</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   ) : (
@@ -435,7 +370,7 @@ export default function StudentClassroom() {
                         <Award className="w-5 h-5 text-amber-400" />
                         <span>Congratulations! All Modules Completed</span>
                       </div>
-                      <p className="text-[11px] text-purple-200">Official Sacred Mind Industrial Certification verified for Mohali Lab.</p>
+                      <p className="text-[11px] text-purple-200">Official Sacred Mind Industrial Certification verified.</p>
                     </div>
                   )
                 )}
@@ -448,7 +383,7 @@ export default function StudentClassroom() {
             <div className="space-y-4 bg-slate-900/40 p-6 rounded-3xl border border-slate-800">
               <h4 className="text-base font-bold text-white flex items-center space-x-2">
                 <BrainCircuit className="w-5 h-5 text-purple-400" />
-                <span>AI Lesson Summary & Core Architecture</span>
+                <span>AI Lesson Summary</span>
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
                 {currentModule.summary}
