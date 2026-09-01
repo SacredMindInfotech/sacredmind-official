@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'all' | 'courses' | 'services'>('all');
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [generatingSyllabus, setGeneratingSyllabus] = useState(false);
   const [generatedSyllabus, setGeneratedSyllabus] = useState<string[] | null>(null);
@@ -57,20 +56,20 @@ export default function Home() {
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-600 selection:text-white">
       
       {/* NAVBAR */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/85 border-b border-purple-950/40">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="relative w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/90 border-b border-purple-950/40">
+        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-4 group">
+            <div className="relative w-14 h-14 flex items-center justify-center transition-transform group-hover:scale-105">
               <Image 
                 src="/logo.png" 
                 alt="Sacred Mind Logo" 
-                width={40} 
-                height={40} 
-                className="object-contain drop-shadow-[0_0_15px_rgba(168,85,247,0.45)]"
+                width={56} 
+                height={56} 
+                className="object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]"
                 priority
               />
             </div>
-            <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-purple-400 bg-clip-text text-transparent">
+            <span className="text-3xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-purple-400 bg-clip-text text-transparent">
               Sacred Mind
             </span>
           </Link>
@@ -85,7 +84,7 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             <Link 
               href="#courses" 
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm transition shadow-lg shadow-purple-600/25"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm transition shadow-lg shadow-purple-600/30"
             >
               Explore Academy
             </Link>
@@ -452,16 +451,16 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
           <div>
             <div className="flex items-center space-x-3 mb-4">
-              <div className="relative w-8 h-8">
+              <div className="relative w-10 h-10">
                 <Image 
                   src="/logo.png" 
                   alt="Sacred Mind Logo" 
-                  width={32} 
-                  height={32} 
+                  width={40} 
+                  height={40} 
                   className="object-contain"
                 />
               </div>
-              <span className="text-xl font-bold">Sacred Mind</span>
+              <span className="text-2xl font-bold">Sacred Mind</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed">
               Industrial Area, Phase 8, Sahibzada Ajit Singh Nagar, Punjab.
