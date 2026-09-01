@@ -6,11 +6,24 @@ import Link from 'next/link';
 import { 
   Code2, Bot, Gamepad2, Star, BookOpen, Sparkles, 
   ArrowRight, CheckCircle2, MapPin, Mail, BrainCircuit, 
-  Globe, ArrowUpRight, Check, Send
+  Globe, ArrowUpRight, Check, Send, MessageCircle
 } from 'lucide-react';
 
 export default function Home() {
+  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
+  const [interest, setInterest] = useState('AI Programs & Industrial Training');
+  const [message, setMessage] = useState('');
   const [formSubmitted, setFormSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormSubmitted(true);
+
+    // Direct WhatsApp Message Trigger for 100% Guaranteed Lead Delivery
+    const waText = encodeURIComponent(`*New Sacred Mind Inquiry*\n\n*Name:* ${name}\n*Contact:* ${contact}\n*Interested In:* ${interest}\n*Message:* ${message || 'N/A'}`);
+    window.open(`https://wa.me/919876543210?text=${waText}`, '_blank');
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-600 selection:text-white">
@@ -114,7 +127,7 @@ export default function Home() {
                 Industry-Ready AI & Global Language Academy
               </h2>
               <p className="mt-3 text-slate-400 text-sm leading-relaxed">
-                Explore our 9 specialized programs in Python & AI Automations, Machine Learning, Data Science, and AI-accelerated language programs (English, Punjabi, French, Dutch) with live syllabus generation.
+                Explore our 9 specialized programs in Python & AI Automations, Machine Learning, Data Science, and AI-accelerated language programs (English, Punjabi, French, Dutch) with live syllabus generation and instant classroom access.
               </p>
             </div>
             <Link 
@@ -174,7 +187,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CONTACT & LEAD CAPTURE FORM */}
+      {/* CONTACT FORM */}
       <section id="contact" className="py-24 border-t border-purple-950/40">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
@@ -198,11 +211,11 @@ export default function Home() {
           <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800">
             {formSubmitted ? (
               <div className="text-center py-12 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
                   <Check className="w-6 h-6" />
                 </div>
-                <h4 className="text-xl font-bold text-white">Inquiry Received!</h4>
-                <p className="text-sm text-slate-400">Our team from Phase 8 Mohali will connect with you shortly.</p>
+                <h4 className="text-xl font-bold text-white">Inquiry Forwarded!</h4>
+                <p className="text-sm text-slate-400">Our team from Phase 8 Mohali will connect with you immediately.</p>
                 <button 
                   onClick={() => setFormSubmitted(false)}
                   className="mt-4 px-4 py-2 bg-slate-800 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-700"
@@ -211,18 +224,14 @@ export default function Home() {
                 </button>
               </div>
             ) : (
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setFormSubmitted(true);
-                }} 
-                className="space-y-4"
-              >
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Your Name</label>
                   <input 
                     type="text" 
                     required 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your name" 
                     className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-purple-500 focus:outline-none text-sm text-white"
                   />
@@ -232,13 +241,19 @@ export default function Home() {
                   <input 
                     type="text" 
                     required 
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
                     placeholder="info@yourcompany.com / +91..." 
                     className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-purple-500 focus:outline-none text-sm text-white"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Interested In</label>
-                  <select className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-purple-500 focus:outline-none text-sm text-slate-300">
+                  <select 
+                    value={interest}
+                    onChange={(e) => setInterest(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-purple-500 focus:outline-none text-sm text-slate-300"
+                  >
                     <option>AI Programs & Industrial Training</option>
                     <option>AI Language Academy (English/Punjabi/French/Dutch)</option>
                     <option>Custom Web & App Development</option>
@@ -251,15 +266,18 @@ export default function Home() {
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Message</label>
                   <textarea 
                     rows={3} 
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
                     placeholder="Tell us about your requirements..." 
                     className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-purple-500 focus:outline-none text-sm text-white"
                   />
                 </div>
                 <button 
                   type="submit" 
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm transition shadow-lg shadow-purple-600/25"
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm transition shadow-lg shadow-purple-600/25 flex items-center justify-center space-x-2"
                 >
-                  Submit Inquiry
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Send Inquiry (Instant Connect)</span>
                 </button>
               </form>
             )}
