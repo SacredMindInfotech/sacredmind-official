@@ -1,358 +1,493 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { 
   Play, Bot, Sparkles, CheckCircle2, Lock,
   Send, Code2, FileText, ChevronRight, BrainCircuit, Check,
-  HelpCircle, AlertCircle, Award, Volume2, ShieldCheck, Languages
+  HelpCircle, AlertCircle, Award, Globe2
 } from 'lucide-react';
 
 interface QuizQuestion {
-  question: string;
-  options: string[];
+  questionEn: string;
+  questionHi: string;
+  optionsEn: string[];
+  optionsHi: string[];
   correctIndex: number;
-  explanation: string;
+  explanationEn: string;
+  explanationHi: string;
 }
 
 interface ModuleData {
   id: number;
   week: string;
-  title: string;
+  titleEn: string;
+  titleHi: string;
   duration: string;
   videoEmbedUrl: string;
-  summary: string;
-  keyPoints: string[];
+  summaryEn: string;
+  summaryHi: string;
+  keyPointsEn: string[];
+  keyPointsHi: string[];
   codeSnippet: string;
   quiz: QuizQuestion;
 }
 
-// 100% COURSE-SPECIFIC REAL-TIME DATABASE
-const COURSES_DATABASE: Record<string, { title: string; category: string; modules: ModuleData[] }> = {
+interface CourseSchema {
+  id: string;
+  titleEn: string;
+  titleHi: string;
+  category: string;
+  modules: ModuleData[];
+}
+
+const COURSES_REGISTRY: Record<string, CourseSchema> = {
+  // 1. PUNJABI LANGUAGE
   'lang-punjabi': {
-    title: 'Punjabi Language & Cultural Professional Course',
+    id: 'lang-punjabi',
+    titleEn: 'Punjabi Language & Professional Cultural Communication',
+    titleHi: 'ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਅਤੇ ਪੇਸ਼ੇਵਰ ਸੰਚਾਰ (Punjabi Fluency Course)',
     category: 'Language Academy',
     modules: [
       {
         id: 1,
         week: 'Module 1',
-        title: 'Gurmukhi Akhar & Phonetic Foundation (ਪੈਂਤੀ ਅੱਖਰੀ)',
+        titleEn: 'Gurmukhi Script & Phonetic System (ਪੈਂਤੀ ਅੱਖਰੀ)',
+        titleHi: 'ਗੁਰਮੁਖੀ ਅੱਖਰ ਅਤੇ ਉਚਾਰਨ (35 Letters)',
         duration: '22:15 mins',
         videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/8_rX0975g7Q?autoplay=1&rel=0',
-        summary: 'Mastering the 35 basic letters of Gurmukhi, proper vocal pronunciation, and tonal modulations.',
-        keyPoints: [
-          'Vowel sounds and tone markers (ਮਾਤਰਾਵਾਂ - ਕੰਨਾ, ਸਿਹਾਰੀ, ਬਿਹਾਰੀ).',
-          'Vocal articulation and nasal sound inflections (ਟਿੱਪੀ, ਬਿੰਦੀ).',
-          'Common regional greetings and formal etiquette in Punjab.'
+        summaryEn: 'Foundational Gurmukhi characters, vowel tone signs (ਮਾਤਰਾਵਾਂ), and Punjabi pronunciation basics.',
+        summaryHi: 'ਗੁਰਮੁਖੀ ਦੇ ਮੂਲ ਅੱਖਰ, ਕੰਨਾ-ਸਿਹਾਰੀ-ਬਿਹਾਰੀ ਮਾਤਰਾਵਾਂ ਅਤੇ ਸ਼ੁੱਧ ਉਚਾਰਨ ਦੇ ਨਿਯਮ।',
+        keyPointsEn: [
+          'Mastering all 35 letters of Gurmukhi.',
+          'Nasal tones and symbol placement (ਟਿੱਪੀ, ਬਿੰਦੀ, ਅੱਧਕ).',
+          'Standard courteous greetings across Punjab.'
         ],
-        codeSnippet: `// Punjabi Basic Sentence Structure (Subject + Object + Verb)\n// ਮੈਂ ਸਕੂਲ ਜਾਂਦਾ ਹਾਂ (I go to school)\nconst sentence = {\n  subject: "ਮੈਂ (I)",\n  object: "ਸਕੂਲ (School)",\n  verb: "ਜਾਂਦਾ ਹਾਂ (Go)"\n};`,
+        keyPointsHi: [
+          'ਪੈਂਤੀ ਅੱਖਰੀ ਦੀ ਪਛਾਣ ਅਤੇ ਲਿਖਣ ਦਾ ਅਭਿਆਸ।',
+          'ਟਿੱਪੀ, ਬਿੰਦੀ ਅਤੇ ਅੱਧਕ ਦੀ ਸਹੀ ਵਰਤੋਂ।',
+          'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਅਤੇ ਸਤਿਕਾਰਯੋਗ ਸ਼ਬਦਾਵਲੀ।'
+        ],
+        codeSnippet: `// Punjabi Sentence Architecture (Subject + Object + Verb)\n// ਮੈਂ (Subject) + ਦਫ਼ਤਰ (Object) + ਜਾਂਦਾ ਹਾਂ (Verb)\nconst punjabiSOV = {\n  subject: "ਮੈਂ",\n  object: "ਦਫ਼ਤਰ",\n  verb: "ਜਾਂਦਾ ਹਾਂ"\n};`,
         quiz: {
-          question: 'In Punjabi sentence construction, what is the standard grammatical order?',
-          options: [
-            'Verb + Subject + Object (VSO)',
-            'Subject + Object + Verb (SOV)',
-            'Object + Verb + Subject (OVS)'
-          ],
+          questionEn: 'In Punjabi sentence syntax, what is the standard grammatical structure?',
+          questionHi: 'ਪੰਜਾਬੀ ਵਾਕ ਬਣਤਰ ਦਾ ਸਹੀ ਨਿਯਮ ਕੀ ਹੈ?',
+          optionsEn: ['Verb + Subject + Object (VSO)', 'Subject + Object + Verb (SOV)', 'Object + Verb + Subject (OVS)'],
+          optionsHi: ['ਕਿਰਿਆ + ਕਰਤਾ + ਕਰਮ (VSO)', 'ਕਰਤਾ + ਕਰਮ + ਕਿਰਿਆ (SOV)', 'ਕਰਮ + ਕਿਰਿਆ + ਕਰਤਾ (OVS)'],
           correctIndex: 1,
-          explanation: 'Punjabi follows the SOV (Subject + Object + Verb) sentence architecture.'
+          explanationEn: 'Punjabi follows the SOV (Subject + Object + Verb) pattern.',
+          explanationHi: 'ਪੰਜਾਬੀ ਵਾਕਾਂ ਵਿੱਚ ਪਹਿਲਾਂ ਕਰਤਾ (Subject), ਫਿਰ ਕਰਮ (Object) ਅਤੇ ਅੰਤ ਵਿੱਚ ਕਿਰਿਆ (Verb) ਆਉਂਦੀ ਹੈ।'
         }
       },
       {
         id: 2,
         week: 'Module 2',
-        title: 'Essential Vocabulary & Daily Conversational Drills',
+        titleEn: 'Business Vocabulary & Professional Corporate Dialogue',
+        titleHi: 'ਦਫ਼ਤਰੀ ਸ਼ਬਦਾਵਲੀ ਅਤੇ ਪੇਸ਼ੇਵਰ ਗੱਲਬਾਤ',
         duration: '28:40 mins',
         videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/3C5h7_jD6kQ?autoplay=1&rel=0',
-        summary: 'Practical conversational dialogues for business, travel, and corporate administration.',
-        keyPoints: [
-          'Formal vs informal addressing (ਤੁਸੀਂ vs ਤੂੰ).',
-          'Time, numbers, and transactional bargaining dialogues.',
-          'AI-assisted voice accent sparring drills.'
+        summaryEn: 'Corporate terminology, official agreement phrasing, and regional North Indian trade negotiations.',
+        summaryHi: 'ਕਾਰੋਬਾਰੀ ਸ਼ਬਦਾਵਲੀ, ਇਕਰਾਰਨਾਮੇ ਦੀ ਭਾਸ਼ਾ ਅਤੇ ਮੀਟਿੰਗਾਂ ਵਿੱਚ ਪ੍ਰਭਾਵਸ਼ਾਲੀ ਸੰਚਾਰ।',
+        keyPointsEn: [
+          'Formal pronoun usage (ਤੁਸੀਂ vs ਤੂੰ).',
+          'Commercial contracts, billing, and accounting vocabulary.',
+          'AI-powered pronunciation sparring drills.'
         ],
-        codeSnippet: `// Formal Dialogue Matrix\nconst greetings = {\n  morning: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ (Sat Sri Akal)",\n  respect: "ਤੁਹਾਡਾ ਕੀ ਹਾਲ ਹੈ? (How are you? - Formal)",\n  acknowledgment: "ਧੰਨਵਾਦ (Thank you)"\n};`,
+        keyPointsHi: [
+          'ਦਫ਼ਤਰਾਂ ਵਿੱਚ ਸਤਿਕਾਰਯੋਗ ਸੰਬੋਧਨ (ਤੁਸੀਂ)।',
+          'ਵਪਾਰਕ ਇਕਰਾਰਨਾਮੇ (Contracts) ਅਤੇ ਲੈਣ-ਦੇਣ ਦੀ ਸ਼ਬਦਾਵਲੀ।',
+          'AI ਨਾਲ ਰੋਜ਼ਾਨਾ ਬੋਲਣ ਦਾ ਅਭਿਆਸ।'
+        ],
+        codeSnippet: `// Corporate Vocabulary Matrix\nconst terms = {\n  contract: "ਇਕਰਾਰਨਾਮਾ",\n  partnership: "ਸਾਂਝੇਦਾਰੀ",\n  invoice: "ਬਿੱਲ / ਰਸੀਦ"\n};`,
         quiz: {
-          question: 'Which pronoun is used to show respect and formality when addressing someone in Punjabi?',
-          options: ['ਤੂੰ (Tu)', 'ਤੁਸੀਂ (Tusi)', 'ਉਹ (Oh)'],
+          questionEn: 'Which Punjabi pronoun is appropriate for formal business meetings?',
+          questionHi: 'ਦਫ਼ਤਰੀ ਅਤੇ ਕਾਰੋਬਾਰੀ ਮੀਟਿੰਗਾਂ ਵਿੱਚ ਕਿਹੜਾ ਪੜਨਾਂਵ (Pronoun) ਵਰਤਿਆ ਜਾਂਦਾ ਹੈ?',
+          optionsEn: ['ਤੂੰ (Tu)', 'ਤੁਸੀਂ (Tusi)', 'ਉਹ (Oh)'],
+          optionsHi: ['ਤੂੰ', 'ਤੁਸੀਂ', 'ਉਹ'],
           correctIndex: 1,
-          explanation: '"ਤੁਸੀਂ (Tusi)" is the formal and respectful pronoun used in professional settings.'
-        }
-      },
-      {
-        id: 3,
-        week: 'Module 3',
-        title: 'Tenses, Grammar Engines & Sentence Synthesis',
-        duration: '32:10 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/U3B9d_1694A?autoplay=1&rel=0',
-        summary: 'Comprehensive past, present, and continuous tense formation with gender agreement rules.',
-        keyPoints: [
-          'Gender inflection in verbs (ਕਰਦਾ ਹੈ vs ਕਰਦੀ ਹੈ).',
-          'Pluralization rules for nouns and adjectives.',
-          'Forming complex compound sentences with conjunctions.'
-        ],
-        codeSnippet: `// Gender & Tense Agreement Logic\nfunction getVerbEnding(gender, tense) {\n  if (gender === 'male' && tense === 'present') return 'ਦਾ ਹੈ';\n  if (gender === 'female' && tense === 'present') return 'ਦੀ ਹੈ';\n  return 'ਦੇ ਹਨ';\n}`,
-        quiz: {
-          question: 'How does the verb ending change for a feminine singular subject in present tense?',
-          options: ['-ਦਾ ਹੈ (-da hai)', '-ਦੀ ਹੈ (-di hai)', '-ਦੇ ਹਨ (-de han)'],
-          correctIndex: 1,
-          explanation: 'Feminine singular subjects take the "-ਦੀ ਹੈ (-di hai)" verb ending.'
-        }
-      },
-      {
-        id: 4,
-        week: 'Module 4',
-        title: 'Corporate & Administrative Business Punjabi',
-        duration: '35:00 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/8jPQjjsBbIc?autoplay=1&rel=0',
-        summary: 'Official document reading, regional commercial contracts, and presentation skills.',
-        keyPoints: [
-          'Commercial trade terminology and legal vocabulary.',
-          'Drafting formal notices, emails, and press releases.',
-          'Handling corporate negotiations in North Indian markets.'
-        ],
-        codeSnippet: `// Corporate Vocabulary Reference\nconst businessTerms = {\n  contract: "ਇਕਰਾਰਨਾਮਾ (Ikrarnama)",\n  partnership: "ਸਾਂਝੇਦਾਰੀ (Sanjhedari)",\n  transaction: "ਲੈਣ-ਦੇਣ (Len-Den)"\n};`,
-        quiz: {
-          question: 'What is the formal Punjabi term for an agreement/contract?',
-          options: ['ਖਾਤਾ (Khata)', 'ਇਕਰਾਰਨਾਮਾ (Ikrarnama)', 'ਦਫ਼ਤਰ (Daftar)'],
-          correctIndex: 1,
-          explanation: '"ਇਕਰਾਰਨਾਮਾ (Ikrarnama)" represents a binding contract or mutual agreement.'
-        }
-      },
-      {
-        id: 5,
-        week: 'Module 5',
-        title: 'Live Fluency Assessment & Certification',
-        duration: '40:00 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/8_rX0975g7Q?autoplay=1&rel=0',
-        summary: 'Final simulated oral exam, translation test, and Sacred Mind Certification issuance.',
-        keyPoints: [
-          '15-minute simulated live dialogue with AI voice evaluator.',
-          'Reading comprehension of contemporary articles.',
-          'Certification issuance verified at Sacred Mind Mohali.'
-        ],
-        codeSnippet: `// Certification Verification\nconst cert = {\n  institution: "Sacred Mind Language Academy",\n  course: "Punjabi Professional Fluency",\n  grade: "Distinction (A+)"\n};`,
-        quiz: {
-          question: 'What is required to receive the official Sacred Mind Language Certification?',
-          options: [
-            'Passing all module checkpoint quizzes with practical oral comprehension',
-            'Attending only 1 session',
-            'No verification needed'
-          ],
-          correctIndex: 0,
-          explanation: 'Certification requires passing the comprehension checkpoints across all curriculum modules.'
+          explanationEn: '"ਤੁਸੀਂ (Tusi)" is the formal and respectful pronoun.',
+          explanationHi: '"ਤੁਸੀਂ" ਸ਼ਬਦ ਸਤਿਕਾਰ ਅਤੇ ਪੇਸ਼ੇਵਰ ਮਾਣ-ਮਰਿਆਦਾ ਨੂੰ ਦਰਸਾਉਂਦਾ ਹੈ।'
         }
       }
     ]
   },
-  'advanced-ai-ml': {
-    title: 'Advanced AI & Machine Learning Program',
-    category: 'AI Engineering',
+
+  // 2. ENGLISH FLUENCY
+  'lang-english': {
+    id: 'lang-english',
+    titleEn: 'English Fluency & Global Business Communication',
+    titleHi: 'इंग्लिश फ्लूएंसी और इंटरनेशनल बिजनेस कम्युनिकेशन',
+    category: 'Language Academy',
     modules: [
       {
         id: 1,
         week: 'Module 1',
-        title: 'Deep Learning Architectures & PyTorch Foundations',
+        titleEn: 'Accent Neutralization & Confidence Sparring',
+        titleHi: 'एक्सेंट न्यूट्रलाइजेशन और आत्मविश्वास के साथ बोलना',
+        duration: '25:15 mins',
+        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/juKd26qkNAw?autoplay=1&rel=0',
+        summaryEn: 'Overcoming Mother Tongue Influence (MTI), intonation cadence, and professional speech pacing.',
+        summaryHi: 'मातृभाषा के प्रभाव (MTI) को हटाना, सही वोकल पिच और बिना झिझक अंग्रेजी में बात करना।',
+        keyPointsEn: [
+          'Voiced vs unvoiced consonant clarity.',
+          'Rhythm and stress patterns in multinational presentations.',
+          '24/7 AI conversational dialogue partner drills.'
+        ],
+        keyPointsHi: [
+          'शब्दों का साफ और स्पष्ट वोकल उच्चारण।',
+          'प्रेजेंटेशन के दौरान सही शब्दों पर जोर (Word Stress)।',
+          'AI के साथ रोज लाइव प्रैक्टिस करके झिझक खत्म करना।'
+        ],
+        codeSnippet: `// Communication Flow\n// Statement: Falling Pitch (↓) | Question: Rising Pitch (↑)`,
+        quiz: {
+          questionEn: 'What happens to pitch inflection at the conclusion of a standard English statement?',
+          questionHi: 'अंग्रेजी में सामान्य वाक्य (Statement) समाप्त होते समय पिच (Pitch) का क्या होता है?',
+          optionsEn: ['Pitch naturally drops downwards', 'Pitch remains high', 'Pitch goes silent'],
+          optionsHi: ['पिच स्वाभाविक रूप से नीचे आती है (Downward inflection)', 'पिच हमेशा ऊपर रहती है', 'आवाज बंद हो जाती है'],
+          correctIndex: 0,
+          explanationEn: 'Statements end with falling intonation in standard English.',
+          explanationHi: 'कथन (Statements) के अंत में टोन नीचे आती है, जबकि सवालों में टोन ऊपर उठती है।'
+        }
+      },
+      {
+        id: 2,
+        week: 'Module 2',
+        titleEn: 'Executive Email Drafting & Diplomatic Negotiations',
+        titleHi: 'एग्जीक्यूटिव ईमेल ड्राफ्टिंग और कॉर्पोरेट नेगोशिएशन',
+        duration: '31:20 mins',
+        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/8jPQjjsBbIc?autoplay=1&rel=0',
+        summaryEn: 'Crafting persuasive business emails, cross-cultural diplomacy, and handling client objections.',
+        summaryHi: 'प्रोफेशनल ईमेल लिखना, क्लाइंट्स के साथ बातचीत और बिना टकराव के अपनी बात मनवाना।',
+        keyPointsEn: [
+          'Diplomatic phrasing ("I see your perspective, however...").',
+          'Direct subject line writing and call-to-action structure.',
+          'Closing global client proposals.'
+        ],
+        keyPointsHi: [
+          'विनम्र और प्रभावी भाषा का चुनाव ("I would suggest" vs "You must").',
+          'सटीक सब्जेक्ट लाइन और प्रोफेशनल फॉर्मेटिंग।',
+          'विदेशी क्लाइंट्स के साथ आत्मविश्वास से मीटिंग्स करना।'
+        ],
+        codeSnippet: `// Executive Email Opening\nconst greeting = "I hope this email finds you well. I am reaching out regarding...";`,
+        quiz: {
+          questionEn: 'Which phrase represents polite, diplomatic phrasing in a corporate disagreement?',
+          questionHi: 'ऑफिस मीटिंग में असहमति जताने का सबसे सही और विनम्र तरीका कौन सा है?',
+          optionsEn: ['"I see your point, however we might consider..."', '"You are completely mistaken"', '"I reject your proposal"'],
+          optionsHi: ['"I see your point, however we might consider..."', '"You are completely mistaken"', '"I reject your proposal"'],
+          correctIndex: 0,
+          explanationEn: 'Diplomatic phrasing acknowledges the other viewpoint while introducing alternatives.',
+          explanationHi: 'प्रोफेशनल बातचीत में पहले सामने वाले की बात समझी जाती है, फिर अपना सुझाव रखा जाता है।'
+        }
+      }
+    ]
+  },
+
+  // 3. FRENCH LANGUAGE
+  'lang-french': {
+    id: 'lang-french',
+    titleEn: 'French Language Mastery (A1-B2 CEFR Accelerated)',
+    titleHi: 'फ्रेंच लैंग्वेज मास्टरी (CEFR A1-B2 लेवल)',
+    category: 'Language Academy',
+    modules: [
+      {
+        id: 1,
+        week: 'Module 1',
+        titleEn: 'French Phonetics, Nasal Sounds & Daily Salutations',
+        titleHi: 'फ्रेंच फोनेटिक्स, नेजल साउंड्स और बुनियादी बातचीत',
+        duration: '27:30 mins',
+        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/ujDtm0hZyII?autoplay=1&rel=0',
+        summaryEn: 'Silent terminal consonants, liaison linking rules, and standard everyday French greetings.',
+        summaryHi: 'साइलेंट लेटर्स के नियम, नेजल वोवेल्स का उच्चारण और फ्रांस/कनाडा में काम आने वाले अभिवादन।',
+        keyPointsEn: [
+          'Nasal vowel production (un, on, in, an).',
+          'Liaison connecting ending consonants to beginning vowels.',
+          'Formal vs informal addressing (Vous vs Tu).'
+        ],
+        keyPointsHi: [
+          'नेजल वोवेल्स का सही उच्चारण।',
+          'Liaison: एक शब्द के आखिरी अक्षर को अगले शब्द से जोड़ना।',
+          'फॉर्मल (Vous) और इनफॉर्मल (Tu) का सही उपयोग।'
+        ],
+        codeSnippet: `// French Courtesy Matrix\nconst french = { morning: "Bonjour", evening: "Bonsoir", thankYou: "Merci beaucoup" };`,
+        quiz: {
+          questionEn: 'Which pronoun is used to address someone with formal respect in French?',
+          questionHi: 'फ्रेंच में किसी को सम्मान देने या बिजनेस मीटिंग में किस सर्वनाम (Pronoun) का उपयोग होता है?',
+          optionsEn: ['Vous (Formal)', 'Tu (Informal)', 'Il (He)'],
+          optionsHi: ['Vous (फॉर्मल)', 'Tu (इनफॉर्मल)', 'Il (वह)'],
+          correctIndex: 0,
+          explanationEn: '"Vous" is the formal pronoun used in professional settings.',
+          explanationHi: '"Vous" का उपयोग बड़ों, नए लोगों और ऑफिस में आदर देने के लिए किया जाता है।'
+        }
+      }
+    ]
+  },
+
+  // 4. DUTCH LANGUAGE
+  'lang-dutch': {
+    id: 'lang-dutch',
+    titleEn: 'Dutch Language Immersion (Relocation & Business)',
+    titleHi: 'डच लैंग्वेज इमर्शन (नीदरलैंड्स वर्क वीजा व बिजनेस)',
+    category: 'Language Academy',
+    modules: [
+      {
+        id: 1,
+        week: 'Module 1',
+        titleEn: 'Dutch Throat Phonetics (G/CH) & Definite Articles',
+        titleHi: 'डच उच्चारण (G/CH ध्वनियां) और आर्टिकल्स (De/Het)',
+        duration: '26:00 mins',
+        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/6_5QZ3gW5qU?autoplay=1&rel=0',
+        summaryEn: 'Mastering guttural sounds, diphthongs (ui, ij), and Dutch noun gender classification.',
+        summaryHi: 'डच भाषा की खास गले से निकलने वाली आवाजें (G), De और Het आर्टिकल्स के नियम।',
+        keyPointsEn: [
+          'Guttural "G" and "CH" pronunciation technique.',
+          'Using "De" (common gender) vs "Het" (neuter gender).',
+          'Essential phrases for Netherlands immigration.'
+        ],
+        keyPointsHi: [
+          'गले से "G" का सही डच उच्चारण निकालना।',
+          'संज्ञा के आगे "De" या "Het" लगाने का सिस्टम।',
+          'नीदरलैंड्स में जॉब और रहने के लिए रोजमर्रा की बातचीत।'
+        ],
+        codeSnippet: `// Dutch Articles\n// De man (The man) | Het huis (The house)`,
+        quiz: {
+          questionEn: 'What are the two definite articles used for "the" in Dutch grammar?',
+          questionHi: 'डच व्याकरण में "The" के लिए कौन से दो आर्टिकल्स उपयोग होते हैं?',
+          optionsEn: ['De and Het', 'Le and La', 'Der and Die'],
+          optionsHi: ['De और Het', 'Le और La', 'Der और Die'],
+          correctIndex: 0,
+          explanationEn: 'Dutch uses "De" and "Het" as definite articles.',
+          explanationHi: 'डच भाषा में हर संज्ञा के साथ "De" या "Het" का प्रयोग किया जाता है।'
+        }
+      }
+    ]
+  },
+
+  // 5. ADVANCED AI & MACHINE LEARNING
+  'advanced-ai-ml': {
+    id: 'advanced-ai-ml',
+    titleEn: 'Advanced AI & Machine Learning Engineering',
+    titleHi: 'एडवांस्ड AI और मशीन लर्निंग इंजीनियरिंग',
+    category: 'Tech Program',
+    modules: [
+      {
+        id: 1,
+        week: 'Module 1',
+        titleEn: 'Deep Learning Architectures & PyTorch Foundations',
+        titleHi: 'डीप लर्निंग आर्किटेक्चर और PyTorch की नींव',
         duration: '38:20 mins',
         videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/tPYj3fFJGjk?autoplay=1&rel=0',
-        summary: 'Neural network layer mechanics, tensor computation, backpropagation, and loss functions.',
-        keyPoints: [
-          'Tensors and CUDA GPU acceleration with PyTorch.',
-          'Gradient descent optimization algorithms (AdamW, SGD).',
-          'Preventing overfitting using dropout and weight regularization.'
+        summaryEn: 'Neural layer mechanics, GPU tensor computation, backpropagation, and loss functions in PyTorch.',
+        summaryHi: 'न्यूरल नेटवर्क लेयर्स, टेंसर कंप्यूटेशन, बैकप्रोपेगेशन और PyTorch में लॉस फंक्शन्स।',
+        keyPointsEn: [
+          'GPU Tensor acceleration with CUDA.',
+          'Gradient descent optimization (AdamW, SGD).',
+          'Preventing overfitting using Dropout layers.'
         ],
-        codeSnippet: `import torch\nimport torch.nn as nn\n\nclass DeepNet(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Sequential(\n            nn.Linear(784, 256),\n            nn.ReLU(),\n            nn.Dropout(0.2),\n            nn.Linear(256, 10)\n        )\n    def forward(self, x):\n        return self.fc(x)`,
+        keyPointsHi: [
+          'CUDA और GPU पर टेंसर ऑपरेशन्स को तेज करना।',
+          'AdamW और SGD जैसे ग्रेडिएंट डिसेंट ऑप्टिमाइज़र्स।',
+          'मॉडल को ओवरफिट होने से बचाने के लिए Dropout लेयर का उपयोग।'
+        ],
+        codeSnippet: `import torch\nimport torch.nn as nn\n\nclass DeepNet(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Sequential(nn.Linear(784, 256), nn.ReLU(), nn.Dropout(0.2), nn.Linear(256, 10))\n    def forward(self, x):\n        return self.fc(x)`,
         quiz: {
-          question: 'What is the primary function of the Dropout layer in deep neural networks?',
-          options: [
-            'To increase training speed to infinity',
-            'To prevent overfitting by randomly deactivating neurons during training',
-            'To double the learning rate'
-          ],
+          questionEn: 'What is the primary function of the Dropout layer in neural networks?',
+          questionHi: 'न्यूरल नेटवर्क में Dropout लेयर का मुख्य काम क्या होता है?',
+          optionsEn: ['To double the download speed', 'To prevent model overfitting during training', 'To delete dataset records'],
+          optionsHi: ['डाउनलोड स्पीड बढ़ाना', 'ट्रेनिंग के दौरान मॉडल को ओवरफिटिंग से बचाना', 'डेटाबेस रिकॉर्ड्स डिलीट करना'],
           correctIndex: 1,
-          explanation: 'Dropout forces the network to learn redundant representations, significantly reducing overfitting.'
+          explanationEn: 'Dropout randomly deactivates neurons to force robust feature learning.',
+          explanationHi: 'Dropout न्यूरॉन्स को रैंडम तरीके से डीएक्टिवेट करके मॉडल को रट्टा मारने (Overfitting) से रोकता है।'
         }
       },
       {
         id: 2,
         week: 'Module 2',
-        title: 'Transformer Architecture & Self-Attention Mechanics',
+        titleEn: 'Fine-Tuning LLMs with LoRA & RAG Vector Pipelines',
+        titleHi: 'LoRA और RAG वेक्टर पाइपलाइन से LLM को फाइन-ट्यून करना',
         duration: '45:10 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/aircAruvnKk?autoplay=1&rel=0',
-        summary: 'Deep dive into multi-head attention, positional encodings, and encoder-decoder mechanisms.',
-        keyPoints: [
-          'Scaled dot-product attention mathematical mechanics.',
-          'Masked language modeling and autoregressive sequence generation.',
-          'Tokenization strategies with Byte-Pair Encoding (BPE).'
-        ],
-        codeSnippet: `// Scaled Dot-Product Attention Formula\n// Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V`,
-        quiz: {
-          question: 'Why is the dot-product scaled by sqrt(d_k) in the Attention mechanism?',
-          options: [
-            'To prevent gradients from vanishing in extreme softmax regions',
-            'To convert tensors into images',
-            'To reduce matrix size'
-          ],
-          correctIndex: 0,
-          explanation: 'Scaling prevents extremely large magnitudes that push softmax into regions with vanishingly small gradients.'
-        }
-      },
-      {
-        id: 3,
-        week: 'Module 3',
-        title: 'Fine-Tuning LLMs with LoRA & QLoRA',
-        duration: '42:30 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/843nec-IvW0?autoplay=1&rel=0',
-        summary: 'Parameter-efficient fine-tuning (PEFT), 4-bit quantization, and domain adaptation.',
-        keyPoints: [
-          'Low-Rank Adaptation (LoRA) matrix decomposition.',
-          'NF4 precision format and GPU VRAM optimization.',
-          'Dataset curation and synthetic prompt generation.'
-        ],
-        codeSnippet: `from peft import LoraConfig, get_peft_model\n\nlora_config = LoraConfig(\n    r=16,\n    lora_alpha=32,\n    target_modules=["q_proj", "v_proj"],\n    lora_dropout=0.05,\n    bias="none",\n    task_type="CAUSAL_LM"\n)`,
-        quiz: {
-          question: 'What makes LoRA significantly more memory-efficient than full fine-tuning?',
-          options: [
-            'It deletes 90% of model weights permanently',
-            'It freezes base model weights and only trains low-rank adapter matrices',
-            'It only works on CPU'
-          ],
-          correctIndex: 1,
-          explanation: 'LoRA keeps original weights frozen and trains small adapter matrices, slashing VRAM usage.'
-        }
-      },
-      {
-        id: 4,
-        week: 'Module 4',
-        title: 'Production RAG & Vector Search Pipelines',
-        duration: '50:15 mins',
         videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc?autoplay=1&rel=0',
-        summary: 'Hybrid sparse-dense retrieval, reranking algorithms, and sub-second semantic search.',
-        keyPoints: [
-          'Chunking strategies (semantic, recursive character).',
-          'Cross-encoder rerankers (Cohere, BGE) for high precision.',
-          'Vector database clustering and index quantization.'
+        summaryEn: 'Parameter-efficient fine-tuning (PEFT), vector similarity indexing, and real-time retrieval generation.',
+        summaryHi: 'कम VRAM में LoRA से मॉडल को ट्रेन करना और Pinecone वेक्टर डेटाबेस से सर्च पाइपलाइन बनाना।',
+        keyPointsEn: [
+          '4-bit QLoRA matrix adapters for low VRAM training.',
+          'Cosine similarity search on high-dimensional embeddings.',
+          'Cross-encoder reranking for context accuracy.'
         ],
-        codeSnippet: `// Production Hybrid RAG Pipeline\nconst context = await vectorStore.hybridSearch({\n  query: userQuery,\n  topK: 5,\n  rerank: true\n});`,
-        quiz: {
-          question: 'What is the role of a Reranker in an advanced RAG pipeline?',
-          options: [
-            'To re-evaluate top retrieved vector results and score them by contextual relevance',
-            'To compress PDF files',
-            'To translate user queries into German'
-          ],
-          correctIndex: 0,
-          explanation: 'A reranker cross-encodes the query and candidates to reorder documents by highest semantic fidelity.'
-        }
-      },
-      {
-        id: 5,
-        week: 'Module 5',
-        title: 'Enterprise Capstone & 100% Placement Placement Drive',
-        duration: '35:00 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/2eebptXfEvw?autoplay=1&rel=0',
-        summary: 'End-to-end model deployment on Kubernetes, API stress tests, and interview mocks.',
-        keyPoints: [
-          'Packaging models into Triton / vLLM high-throughput inferencing servers.',
-          'Mock technical AI interviews with real production scenarios.',
-          '100% Placement Drive execution at Sacred Mind Tech Labs.'
+        keyPointsHi: [
+          'QLoRA के साथ कम खर्च में अपने कस्टम डेटा पर AI मॉडल ट्रेन करना।',
+          'वेक्टर एम्बेडिंग्स और सिमिलैरिटी सर्च से तेज डेटा रिट्रीवल।',
+          'Rerankers की मदद से सटीक और सही जवाब निकालना।'
         ],
-        codeSnippet: `// Deployment Health Monitor\nexport async function verifyModelHealth() {\n  return { status: "ONLINE", latency: "18ms", throughput: "450 req/sec" };\n}`,
+        codeSnippet: `// RAG Vector Retrieval\nconst context = await vectorStore.similaritySearch(userQuery, 4);`,
         quiz: {
-          question: 'What is the primary objective of the final enterprise capstone project?',
-          options: [
-            'To build and deploy a production-grade AI system that passes latency and accuracy thresholds',
-            'To submit an empty repository',
-            'To read one research paper only'
-          ],
+          questionEn: 'Why is LoRA preferred over full model fine-tuning for enterprises?',
+          questionHi: 'कंपनियों में पूरे मॉडल को दोबारा ट्रेन करने की जगह LoRA क्यों चुना जाता है?',
+          optionsEn: ['It trains small adapter matrices while freezing base weights, saving massive GPU memory', 'It works without any data', 'It converts code into HTML'],
+          optionsHi: ['यह बेस मॉडल को लॉक करके छोटे एडेप्टर ट्रेन करता है, जिससे 90% GPU मेमोरी बचती है', 'यह बिना डेटा के काम करता है', 'यह कोड को HTML में बदल देता है'],
           correctIndex: 0,
-          explanation: 'The capstone validates your ability to ship robust, scalable AI architectures in live enterprise settings.'
+          explanationEn: 'LoRA freezes existing weights and only trains low-rank adapter matrices.',
+          explanationHi: 'LoRA पुराने मॉडल को छेड़े बिना छोटे लेयर्स जोड़कर ट्रेन करता है जिससे भारी GPU खर्चा बचता है।'
         }
       }
     ]
   },
-  'default': {
-    title: 'Industry-Ready Technology & AI Program',
-    category: 'Sacred Mind Academy',
+
+  // 6. AI FOUNDATION
+  'ai-foundation': {
+    id: 'ai-foundation',
+    titleEn: 'AI Foundation (For Beginners)',
+    titleHi: 'AI फाउंडेशन (शुरुआती छात्रों के लिए प्रैक्टिकल कोर्स)',
+    category: 'Tech Program',
     modules: [
       {
         id: 1,
         week: 'Module 1',
-        title: 'Core Architecture & Project Setup',
-        duration: '25:00 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc?autoplay=1&rel=0',
-        summary: 'Environment setup, dependencies, clean code patterns, and production baseline configuration.',
-        keyPoints: ['Environment variables and security keys.', 'Git workflows for production.', 'Clean project folder structure.'],
-        codeSnippet: `// Base Initialization\nconsole.log("Sacred Mind Engine Initialized");`,
+        titleEn: 'Introduction to GenAI & Prompt Engineering Basics',
+        titleHi: 'GenAI और प्रॉम्प्ट इंजीनियरिंग की बुनियादी बातें',
+        duration: '24:10 mins',
+        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/jC4v5AS4RIM?autoplay=1&rel=0',
+        summaryEn: 'Understanding how Large Language Models work, token mechanics, and core prompt crafting techniques.',
+        summaryHi: 'LLMs कैसे काम करते हैं, टोकन सिस्टम क्या है और सही प्रॉम्प्ट कैसे तैयार किए जाते हैं।',
+        keyPointsEn: [
+          'Zero-shot vs Few-shot prompt patterns.',
+          'Avoiding hallucinations with strict system guardrails.',
+          'Daily productivity workflows using ChatGPT & Claude.'
+        ],
+        keyPointsHi: [
+          'Zero-shot और Few-shot प्रॉम्प्टिंग के सही तरीके।',
+          'AI को गलत जवाब देने से रोकने के लिए सिस्टम रूल्स सेट करना।',
+          'रोजमर्रा के ऑफिस और स्टडी वर्क को AI से 10x तेज करना।'
+        ],
+        codeSnippet: `// System Prompt Structure\nconst systemPrompt = {\n  role: "system",\n  instruction: "You are a professional business analyst. Answer in concise bullet points only."\n};`,
         quiz: {
-          question: 'What is the first step in setting up an enterprise repository?',
-          options: ['Committing API secrets to public git', 'Setting up environment variable files (.env) and gitignore', 'Deleting project files'],
-          correctIndex: 1,
-          explanation: 'Protecting environment secrets and configuring proper gitignore is critical for security.'
-        }
-      },
-      {
-        id: 2,
-        week: 'Module 2',
-        title: 'API Pipelines & Automation Workflows',
-        duration: '30:00 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/aircAruvnKk?autoplay=1&rel=0',
-        summary: 'Building automated triggers, webhooks, and high-speed data passing.',
-        keyPoints: ['Webhook integration.', 'Error handling & retry mechanisms.', 'Asynchronous processing.'],
-        codeSnippet: `// Webhook Handler\nexport async function handleWebhook() { return { status: 200 }; }`,
-        quiz: {
-          question: 'Why do we use webhooks instead of constant polling?',
-          options: ['To save server resources by receiving data instantly when events occur', 'To make the site slower', 'Webhooks are obsolete'],
+          questionEn: 'What is Few-Shot Prompting in Generative AI?',
+          questionHi: 'Generative AI में Few-Shot Prompting का क्या मतलब होता है?',
+          optionsEn: ['Providing a few input-output examples to guide the model', 'Running 3 models at the same time', 'Deleting the prompt cache'],
+          optionsHi: ['मॉडल को सही दिशा देने के लिए कुछ उदाहरण (Examples) देना', 'एक साथ 3 AI मॉडल चलाना', 'प्रॉम्प्ट हिस्ट्री को डिलीट कर देना'],
           correctIndex: 0,
-          explanation: 'Webhooks push data in real time upon events, eliminating wasteful polling requests.'
+          explanationEn: 'Few-shot prompting provides examples to help the LLM understand expected structure.',
+          explanationHi: 'Few-shot प्रॉम्प्टिंग में मॉडल को उदाहरण दिए जाते हैं ताकि वो सटीक फॉर्मेट में जवाब दे सके।'
         }
-      },
+      }
+    ]
+  },
+
+  // 7. NEXT-GEN AI IN DIGITAL MARKETING
+  'nextgen-ai-marketing': {
+    id: 'nextgen-ai-marketing',
+    titleEn: 'Next-Gen AI in Digital Marketing',
+    titleHi: 'डिजिटल मार्केटिंग में नेक्स्ट-जेन AI तकनीक',
+    category: 'Tech Program',
+    modules: [
       {
-        id: 3,
-        week: 'Module 3',
-        title: 'Database Architecture & Cloud Scaling',
-        duration: '35:00 mins',
+        id: 1,
+        week: 'Module 1',
+        titleEn: 'High-Converting Copywriting & AI Ad Creatives',
+        titleHi: 'AI से हाई-कन्वर्टिंग ऐड कॉपी और क्रिएटिव बनाना',
+        duration: '26:45 mins',
         videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/843nec-IvW0?autoplay=1&rel=0',
-        summary: 'Relational data modeling, indexing, and high-concurrency cloud scaling.',
-        keyPoints: ['Database normalization.', 'Indexing for query speed.', 'Connection pooling.'],
-        codeSnippet: `// High Performance Query\nSELECT * FROM client_records WHERE status = 'ACTIVE';`,
+        summaryEn: 'Automating multi-angle ad copywriting, A/B copy generation, and dynamic viral hooks.',
+        summaryHi: 'मेटा और गूगल ऐड्स के लिए वायरल हेडलाइन्स और सेल्स कॉपी AI से सेकंड्स में बनाना।',
+        keyPointsEn: [
+          'AIDA & PAS framework generation using custom GPTs.',
+          'Predictive CTR analytics and audience hook testing.',
+          'Automated ad variation testing across Facebook & Google.'
+        ],
+        keyPointsHi: [
+          'AIDA और PAS फॉर्मूले पर आधारित सेल्स स्क्रिप्ट तैयार करना।',
+          'ऐड्स पर ज्यादा क्लिक्स लाने के लिए हुक टेस्टिंग करना।',
+          'मेटा और गूगल ऐड्स के लिए अलग-अलग वैरिएशन्स जनरेट करना।'
+        ],
+        codeSnippet: `// Ad Generation Pipeline\nconst adCopy = generateAd({ framework: "PAS", audience: "B2B Founders", tone: "Urgent" });`,
         quiz: {
-          question: 'What improves database query execution speed on large datasets?',
-          options: ['Database Indexing on query filter columns', 'Deleting the database', 'Adding infinite sleep timers'],
+          questionEn: 'In copywriting, what does the PAS framework stand for?',
+          questionHi: 'कॉपीराइटिंग में PAS फॉर्मूले का पूरा नाम क्या है?',
+          optionsEn: ['Problem - Agitate - Solution', 'Print - Author - Send', 'Password - Access - System'],
+          optionsHi: ['प्रॉब्लम (Problem) - एगिटेट (Agitate) - सॉल्यूशन (Solution)', 'प्रिंट - ऑथर - सेंड', 'पासवर्ड - एक्सेस - सिस्टम'],
           correctIndex: 0,
-          explanation: 'Indexes allow the query engine to look up data in logarithmic time without full table scans.'
+          explanationEn: 'PAS identifies the prospect pain point, highlights consequences, and offers your solution.',
+          explanationHi: 'PAS पहले ग्राहक की समस्या दिखाता है, फिर उसके नुकसान बताता है और अंत में अपना समाधान देता है।'
         }
-      },
+      }
+    ]
+  },
+
+  // 8. DATA SCIENCE & APPLIED AI
+  'data-science-ai': {
+    id: 'data-science-ai',
+    titleEn: 'Data Science & Applied AI Masterclass',
+    titleHi: 'डेटा साइंस और एप्लाइड AI मास्टरक्लास',
+    category: 'Tech Program',
+    modules: [
       {
-        id: 4,
-        week: 'Module 4',
-        title: 'AI Integrations & Workflow Automation',
-        duration: '40:00 mins',
-        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/tPYj3fFJGjk?autoplay=1&rel=0',
-        summary: 'Integrating LLMs, custom prompts, and automated business agents.',
-        keyPoints: ['Prompt engineering.', 'Structured JSON output parsing.', 'Agentic decision loops.'],
-        codeSnippet: `// LLM Integration\nconst res = await callAI({ prompt: "Process payload" });`,
+        id: 1,
+        week: 'Module 1',
+        titleEn: 'Pandas, NumPy & Exploratory Data Analysis (EDA)',
+        titleHi: 'Pandas, NumPy और एक्सप्लोरेटरी डेटा एनालिसिस (EDA)',
+        duration: '35:00 mins',
+        videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/r-uOLxNrNk8?autoplay=1&rel=0',
+        summaryEn: 'High-speed dataset manipulation, missing value imputation, and statistical distribution modeling.',
+        summaryHi: 'Pandas और NumPy से बड़े डेटा को साफ करना, कमियों को भरना और स्टेटिस्टिकल एनालिसिस करना।',
+        keyPointsEn: [
+          'Vectorized arithmetic and boolean indexing in NumPy.',
+          'Dataframe aggregation, groupby, and pivot transformations.',
+          'Outlier detection using IQR and Z-score methods.'
+        ],
+        keyPointsHi: [
+          'NumPy की मदद से करोड़ों डेटा रोस पर तेज कैलकुलेशन करना।',
+          'Pandas Dataframe में ग्रुपिंग और डेटा फिल्टरिंग।',
+          'डेटा में से गलत या आउटलायर एंट्रीज को पहचान कर हटाना।'
+        ],
+        codeSnippet: `import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv("client_data.csv")\nclean_df = df.dropna().query("revenue > 50000")`,
         quiz: {
-          question: 'What is structured output in AI API integrations?',
-          options: ['Guaranteed JSON format response adhering to a schema', 'Plain audio output', 'Random text strings'],
+          questionEn: 'Which Pandas function calculates descriptive summary statistics for numeric columns?',
+          questionHi: 'Pandas में सभी न्यूमेरिक कॉलम्स की स्टेटिस्टिक्स समरी निकालने के लिए क्या इस्तेमाल होता है?',
+          optionsEn: ['df.describe()', 'df.delete()', 'df.loop()'],
+          optionsHi: ['df.describe()', 'df.delete()', 'df.loop()'],
           correctIndex: 0,
-          explanation: 'Structured output guarantees the LLM returns schema-valid JSON for direct program consumption.'
+          explanationEn: 'df.describe() outputs count, mean, std, min, and quartiles in one step.',
+          explanationHi: 'df.describe() से एक क्लिक में मीन, मीडियन, मिनिमम और मैक्सिमम स्टेट्स निकल आते हैं।'
         }
-      },
+      }
+    ]
+  },
+
+  // 9. AI AUTOMATION & WORKFLOW ENGINEERING
+  'ai-automation-engineering': {
+    id: 'ai-automation-engineering',
+    titleEn: 'AI Automation & Workflow Engineering',
+    titleHi: 'AI ऑटोमेशन और वर्कफ़्लो इंजीनियरिंग',
+    category: 'Tech Program',
+    modules: [
       {
-        id: 5,
-        week: 'Module 5',
-        title: 'Live Capstone & Certification Exam',
-        duration: '45:00 mins',
+        id: 1,
+        week: 'Module 1',
+        titleEn: 'Enterprise Webhook Pipelines & Make.com Architectures',
+        titleHi: 'एंटरप्राइज वेबहुक पाइपलाइन और Make.com आर्किटेक्चर',
+        duration: '32:00 mins',
         videoEmbedUrl: 'https://www.youtube-nocookie.com/embed/2eebptXfEvw?autoplay=1&rel=0',
-        summary: 'Final project review, live deployment at Mohali lab, and certification issuance.',
-        keyPoints: ['Production deployment.', 'Performance validation.', 'Certification issuance.'],
-        codeSnippet: `// Graduation Verification\nexport const isGraduated = true;`,
+        summaryEn: 'Creating multi-step automated workflows connecting CRMs, databases, and communication channels.',
+        summaryHi: 'Make.com और n8n की मदद से CRM, गूगल शीट्स और व्हाट्सएप को बिना कोडिंग के आपस में जोड़ना।',
+        keyPointsEn: [
+          'Instant webhook triggers vs Scheduled polling.',
+          'Error handlers, routers, and fallback notification channels.',
+          'Rate limits and batch payload processing.'
+        ],
+        keyPointsHi: [
+          'इवेंट होते ही तुरंत एक्शन लेना (Webhooks)।',
+          'अगर कोई स्टेप फेल हो जाए तो एरर हैंडलर से बैकअप मैसेज भेजना।',
+          'हजारों कॉल्स को एक साथ बिना ब्लॉक हुए प्रोसेस करना।'
+        ],
+        codeSnippet: `// Webhook Receiver Controller\nexport async function POST(req: Request) {\n  const payload = await req.json();\n  await triggerMakePipeline(payload);\n  return new Response("OK");\n}`,
         quiz: {
-          question: 'How do you graduate from this Sacred Mind Program?',
-          options: ['Complete all module checkpoints and verify project deliverables', 'Skip all videos', 'Close the tab'],
+          questionEn: 'What makes webhooks faster and more efficient than polling?',
+          questionHi: 'वेबहुक्स (Webhooks) बार-बार चेक करने (Polling) से तेज और बेहतर क्यों होते हैं?',
+          optionsEn: ['Webhooks push data instantly when an event occurs without wasted requests', 'Webhooks only work on weekends', 'Webhooks delete old database records'],
+          optionsHi: ['वेबहुक्स घटना घटते ही तुरंत डेटा भेजते हैं, जिससे सर्वर पर लोड नहीं पड़ता', 'वेबहुक्स सिर्फ वीकेंड पर चलते हैं', 'वेबहुक्स डेटाबेस को डिलीट कर देते हैं'],
           correctIndex: 0,
-          explanation: 'Graduation requires completing all interactive checkpoint assessments and project milestones.'
+          explanationEn: 'Webhooks use event-driven push architecture, delivering payloads in real time.',
+          explanationHi: 'वेबहुक्स रियल-टाइम में डेटा पुश करते हैं, जिससे सेकंड्स में काम पूरा हो जाता है।'
         }
       }
     ]
@@ -360,13 +495,9 @@ const COURSES_DATABASE: Record<string, { title: string; category: string; module
 };
 
 export default function StudentClassroom() {
-  const params = useParams();
-  const rawCourseId = params?.courseId ? String(params.courseId) : 'advanced-ai-ml';
-  
-  // Select exact course or fallback
-  const courseData = COURSES_DATABASE[rawCourseId] || COURSES_DATABASE['default'];
-  const modules = courseData.modules;
-
+  // Extract course ID directly from window pathname or route fallback
+  const [activeCourseId, setActiveCourseId] = useState<string>('advanced-ai-ml');
+  const [langMode, setLangMode] = useState<'hi' | 'en'>('hi');
   const [unlockedModules, setUnlockedModules] = useState<number[]>([1]);
   const [activeModuleIndex, setActiveModuleIndex] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'quiz' | 'notes' | 'code'>('quiz');
@@ -376,19 +507,40 @@ export default function StudentClassroom() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizPassed, setQuizPassed] = useState(false);
 
-  // In-Class AI Tutor Chat State
-  const [chatMessages, setChatMessages] = useState<{ sender: 'user' | 'ai'; text: string }[]>([
-    { sender: 'ai', text: `Welcome to Sacred Mind! I am your AI In-Class Tutor for ${courseData.title}. Watch the full video lecture, solve the checkpoint question below to unlock the next module, and ask any doubts anytime!` }
-  ]);
+  // AI Tutor State
+  const [chatMessages, setChatMessages] = useState<{ sender: 'user' | 'ai'; text: string }[]>([]);
   const [userInput, setUserInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  const currentModule = modules[activeModuleIndex];
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const parts = window.location.pathname.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (lastPart && COURSES_REGISTRY[lastPart]) {
+        setActiveCourseId(lastPart);
+      }
+    }
+  }, []);
 
-  // Switch Module handler
+  const courseData = COURSES_REGISTRY[activeCourseId] || COURSES_REGISTRY['advanced-ai-ml'];
+  const modules = courseData.modules;
+  const currentModule = modules[activeModuleIndex] || modules[0];
+
+  useEffect(() => {
+    setChatMessages([
+      { 
+        sender: 'ai', 
+        text: langMode === 'hi' 
+          ? `नमस्ते! मैं आपका सेक्रेड माइंड AI ट्यूटर हूँ। ${courseData.titleHi} के इस पाठ के बारे में कोई भी सवाल पूछें!`
+          : `Hello! I am your Sacred Mind AI Tutor. Ask me any question regarding this ${courseData.titleEn} lesson!`
+      }
+    ]);
+  }, [activeCourseId, langMode]);
+
+  // Switch Module
   const handleSelectModule = (index: number) => {
     if (!unlockedModules.includes(modules[index].id)) {
-      alert("🔒 Please pass the current module's checkpoint quiz to unlock this chapter!");
+      alert(langMode === 'hi' ? "🔒 कृपया अगला चैप्टर अनलॉक करने के लिए वर्तमान क्विज़ पास करें!" : "🔒 Please pass current module's checkpoint quiz to unlock this chapter!");
       return;
     }
     setActiveModuleIndex(index);
@@ -398,7 +550,7 @@ export default function StudentClassroom() {
     setActiveTab('quiz');
   };
 
-  // Submit Quiz Question
+  // Submit Quiz
   const handleQuizSubmit = () => {
     if (selectedAnswer === null) return;
     setQuizSubmitted(true);
@@ -414,14 +566,14 @@ export default function StudentClassroom() {
     }
   };
 
-  // Move to next unlocked module
+  // Move Next
   const handleNextModule = () => {
     if (activeModuleIndex < modules.length - 1) {
       handleSelectModule(activeModuleIndex + 1);
     }
   };
 
-  // AI Doubt Solver
+  // Dynamic AI Doubt Solver
   const handleSendQuery = () => {
     if (!userInput.trim()) return;
     const q = userInput;
@@ -431,9 +583,10 @@ export default function StudentClassroom() {
 
     setTimeout(() => {
       setIsTyping(false);
+      const exp = langMode === 'hi' ? currentModule.quiz.explanationHi : currentModule.quiz.explanationEn;
       setChatMessages(prev => [...prev, {
         sender: 'ai',
-        text: `Regarding "${q}" in ${currentModule.title}: ${currentModule.quiz.explanation} You can also review the Code & Notes tab right here for exact implementation syntax!`
+        text: `${langMode === 'hi' ? 'आपके सवाल पर:' : 'Regarding your query:'} "${q}" — ${exp} ${langMode === 'hi' ? 'आप स्मार्ट नोट्स और लाइव सिंटैक्स टैब में भी इसकी डिटेल्स देख सकते हैं।' : 'You can review exact details inside the Notes & Code tab!'}`
       }]);
     }, 700);
   };
@@ -450,13 +603,24 @@ export default function StudentClassroom() {
           </Link>
           <span className="text-slate-700 hidden sm:inline">|</span>
           <span className="text-xs text-purple-300 font-mono bg-purple-950/50 px-3 py-1 rounded-md border border-purple-800/40 hidden sm:inline">
-            {courseData.title}
+            {langMode === 'hi' ? courseData.titleHi : courseData.titleEn}
           </span>
         </div>
+
         <div className="flex items-center space-x-3">
-          <div className="text-xs text-slate-400">
+          {/* BILINGUAL LANGUAGE SWITCHER */}
+          <button 
+            onClick={() => setLangMode(langMode === 'hi' ? 'en' : 'hi')}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-purple-950/60 border border-purple-600/50 text-xs font-bold text-purple-300 hover:bg-purple-900/60 transition shadow-lg shadow-purple-950/40"
+          >
+            <Globe2 className="w-3.5 h-3.5" />
+            <span>{langMode === 'hi' ? '🇮🇳 हिन्दी / Hinglish' : '🇬🇧 English'}</span>
+          </button>
+
+          <div className="text-xs text-slate-400 hidden md:block">
             Progress: <strong className="text-white">{Math.round((unlockedModules.length / modules.length) * 100)}%</strong>
           </div>
+
           <Link href="/courses" className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 transition">
             Exit ✕
           </Link>
@@ -466,10 +630,12 @@ export default function StudentClassroom() {
       {/* MAIN LEARNING ARENA */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
         
-        {/* LEFT: CURRICULUM & MODULE LOCK STATE */}
+        {/* LEFT: SYLLABUS MODULES SIDEBAR */}
         <div className="lg:col-span-3 border-r border-slate-800/80 bg-slate-950/70 p-4 overflow-y-auto max-h-[calc(100vh-4rem)]">
           <div className="flex items-center justify-between mb-4 px-2">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Course Modules</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              {langMode === 'hi' ? 'कोर्स सिलेबस' : 'Course Syllabus'}
+            </h3>
             <span className="text-[10px] text-purple-400 font-mono">{unlockedModules.length}/{modules.length} Unlocked</span>
           </div>
 
@@ -492,7 +658,9 @@ export default function StudentClassroom() {
                 >
                   <div className="pr-2">
                     <span className="text-[10px] font-mono text-purple-400 block font-semibold">{mod.week}</span>
-                    <span className="text-xs font-bold block leading-snug line-clamp-1">{mod.title}</span>
+                    <span className="text-xs font-bold block leading-snug line-clamp-1">
+                      {langMode === 'hi' ? mod.titleHi : mod.titleEn}
+                    </span>
                     <span className="text-[10px] text-slate-500">{mod.duration}</span>
                   </div>
 
@@ -511,16 +679,16 @@ export default function StudentClassroom() {
           </div>
         </div>
 
-        {/* MIDDLE: THEATER-SIZED VIDEO PLAYER + MANDATORY CHECKPOINT QUIZ */}
+        {/* MIDDLE: THEATER HD VIDEO PLAYER + QUIZ GATE */}
         <div className="lg:col-span-6 p-6 overflow-y-auto max-h-[calc(100vh-4rem)] flex flex-col space-y-6">
           
-          {/* LARGE HD EMBED VIDEO PLAYER */}
+          {/* HD EMBED VIDEO PLAYER */}
           <div className="rounded-3xl overflow-hidden border border-purple-500/40 bg-slate-900 shadow-2xl relative">
             <div className="aspect-video w-full bg-black">
               <iframe 
                 key={currentModule.videoEmbedUrl}
                 src={currentModule.videoEmbedUrl} 
-                title={currentModule.title}
+                title={currentModule.titleEn}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -530,7 +698,9 @@ export default function StudentClassroom() {
             <div className="p-4 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-                <span className="text-xs font-bold text-white line-clamp-1">{currentModule.title}</span>
+                <span className="text-xs font-bold text-white line-clamp-1">
+                  {langMode === 'hi' ? currentModule.titleHi : currentModule.titleEn}
+                </span>
               </div>
               <span className="text-[11px] font-mono text-purple-400 bg-purple-950/60 px-2.5 py-1 rounded-md border border-purple-800/40 shrink-0">
                 {currentModule.duration}
@@ -538,28 +708,28 @@ export default function StudentClassroom() {
             </div>
           </div>
 
-          {/* INTERACTIVE TABS */}
+          {/* INTERACTIVE LEARNING TABS */}
           <div className="border-b border-slate-800 flex space-x-6 text-sm font-semibold">
             <button 
               onClick={() => setActiveTab('quiz')}
               className={`pb-3 border-b-2 transition flex items-center space-x-2 ${activeTab === 'quiz' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
             >
               <HelpCircle className="w-4 h-4" />
-              <span>Mandatory Checkpoint Quiz</span>
+              <span>{langMode === 'hi' ? 'अनिवार्य क्विज़ (Checkpoint)' : 'Mandatory Checkpoint Quiz'}</span>
             </button>
             <button 
               onClick={() => setActiveTab('notes')}
               className={`pb-3 border-b-2 transition flex items-center space-x-2 ${activeTab === 'notes' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
             >
               <FileText className="w-4 h-4" />
-              <span>AI Smart Notes</span>
+              <span>{langMode === 'hi' ? 'AI स्मार्ट नोट्स' : 'AI Smart Notes'}</span>
             </button>
             <button 
               onClick={() => setActiveTab('code')}
               className={`pb-3 border-b-2 transition flex items-center space-x-2 ${activeTab === 'code' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
             >
               <Code2 className="w-4 h-4" />
-              <span>Live Code / Syntax</span>
+              <span>{langMode === 'hi' ? 'लाइव सिंटैक्स / कोड' : 'Live Syntax & Code'}</span>
             </button>
           </div>
 
@@ -572,7 +742,7 @@ export default function StudentClassroom() {
                     {currentModule.week} Checkpoint Verification
                   </span>
                   <h4 className="text-base font-bold text-white mt-1">
-                    {currentModule.quiz.question}
+                    {langMode === 'hi' ? currentModule.quiz.questionHi : currentModule.quiz.questionEn}
                   </h4>
                 </div>
                 <span className="p-2 bg-purple-500/10 rounded-xl text-purple-400 border border-purple-500/20">
@@ -582,7 +752,7 @@ export default function StudentClassroom() {
 
               {/* OPTIONS */}
               <div className="space-y-3">
-                {currentModule.quiz.options.map((option, optIdx) => (
+                {(langMode === 'hi' ? currentModule.quiz.optionsHi : currentModule.quiz.optionsEn).map((option, optIdx) => (
                   <button
                     key={optIdx}
                     onClick={() => {
@@ -605,23 +775,25 @@ export default function StudentClassroom() {
                 ))}
               </div>
 
-              {/* FEEDBACK */}
+              {/* QUIZ FEEDBACK */}
               {quizSubmitted && (
                 <div className={`p-4 rounded-2xl border text-xs ${quizPassed ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300' : 'bg-rose-950/30 border-rose-500/40 text-rose-300'}`}>
                   <div className="flex items-center space-x-2 font-bold mb-1">
                     {quizPassed ? (
                       <>
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>Correct Answer! Next chapter unlocked 🎉</span>
+                        <span>{langMode === 'hi' ? 'सही उत्तर! अगला चैप्टर अनलॉक हो गया है 🎉' : 'Correct Answer! Next chapter unlocked 🎉'}</span>
                       </>
                     ) : (
                       <>
                         <AlertCircle className="w-4 h-4 text-rose-400" />
-                        <span>Incorrect answer. Review the video lecture or AI Notes and try again!</span>
+                        <span>{langMode === 'hi' ? 'गलत उत्तर। कृपया दोबारा कोशिश करें।' : 'Incorrect answer. Please review and try again!'}</span>
                       </>
                     )}
                   </div>
-                  <p className="text-slate-300 mt-1">{currentModule.quiz.explanation}</p>
+                  <p className="text-slate-300 mt-1">
+                    {langMode === 'hi' ? currentModule.quiz.explanationHi : currentModule.quiz.explanationEn}
+                  </p>
                 </div>
               )}
 
@@ -633,7 +805,7 @@ export default function StudentClassroom() {
                     disabled={selectedAnswer === null}
                     className="w-full py-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-xs text-white transition shadow-lg shadow-purple-600/25"
                   >
-                    Submit & Verify Answer
+                    {langMode === 'hi' ? 'उत्तर सबमिट करें और जांचें' : 'Submit & Verify Answer'}
                   </button>
                 ) : (
                   activeModuleIndex < modules.length - 1 ? (
@@ -641,16 +813,16 @@ export default function StudentClassroom() {
                       onClick={handleNextModule}
                       className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white transition shadow-lg shadow-emerald-600/25 flex items-center justify-center space-x-2"
                     >
-                      <span>Proceed to Next Module ({modules[activeModuleIndex + 1].week})</span>
+                      <span>{langMode === 'hi' ? `अगले मॉड्यूल पर जाएं (${modules[activeModuleIndex + 1].week})` : `Proceed to Next Module (${modules[activeModuleIndex + 1].week})`}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   ) : (
                     <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-purple-900 to-pink-900 border border-purple-500/40 text-center space-y-1">
                       <div className="flex items-center justify-center space-x-2 text-white font-bold text-sm">
                         <Award className="w-5 h-5 text-amber-400" />
-                        <span>Congratulations! All Modules Completed</span>
+                        <span>{langMode === 'hi' ? 'बधाई हो! सभी मॉड्यूल पूरे हो चुके हैं' : 'Congratulations! All Modules Completed'}</span>
                       </div>
-                      <p className="text-[11px] text-purple-200">Official Sacred Mind Certification verified.</p>
+                      <p className="text-[11px] text-purple-200">{langMode === 'hi' ? 'सेक्रेड माइंड इंडस्ट्रियल ट्रेनिंग सर्टिफिकेशन वेरीफाई हो गया है।' : 'Official Sacred Mind Certification verified.'}</p>
                     </div>
                   )
                 )}
@@ -663,14 +835,14 @@ export default function StudentClassroom() {
             <div className="space-y-4 bg-slate-900/40 p-6 rounded-3xl border border-slate-800">
               <h4 className="text-base font-bold text-white flex items-center space-x-2">
                 <BrainCircuit className="w-5 h-5 text-purple-400" />
-                <span>AI Lesson Summary & Key Principles</span>
+                <span>{langMode === 'hi' ? 'पाठ का सार और मुख्य बिंदु' : 'AI Lesson Summary & Key Principles'}</span>
               </h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                {currentModule.summary}
+                {langMode === 'hi' ? currentModule.summaryHi : currentModule.summaryEn}
               </p>
               
               <div className="space-y-2 pt-2">
-                {currentModule.keyPoints.map((point, idx) => (
+                {(langMode === 'hi' ? currentModule.keyPointsHi : currentModule.keyPointsEn).map((point, idx) => (
                   <div key={idx} className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-300 flex items-start space-x-2">
                     <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
                     <span>{point}</span>
@@ -706,7 +878,7 @@ export default function StudentClassroom() {
               ))}
               {isTyping && (
                 <div className="text-[10px] text-purple-400 animate-pulse font-mono">
-                  AI Tutor is reviewing lesson context...
+                  AI Tutor is analyzing lesson context...
                 </div>
               )}
             </div>
@@ -719,7 +891,7 @@ export default function StudentClassroom() {
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendQuery()}
-                placeholder="Ask doubt about this lesson..."
+                placeholder={langMode === 'hi' ? "इस पाठ के बारे में सवाल पूछें..." : "Ask doubt about this lesson..."}
                 className="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500"
               />
               <button
