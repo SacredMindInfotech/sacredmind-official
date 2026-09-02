@@ -8,7 +8,7 @@ import {
   Check, ArrowUpRight, TrendingUp, Plus, Video, 
   Wallet, Award, Clock, ChevronRight, Landmark, AlertCircle,
   Lock, LogOut, KeyRound, Mail, ExternalLink, Eye, EyeOff,
-  Share2, ShieldCheck, PlayCircle, User
+  Share2, ShieldCheck, PlayCircle, User, UserPlus, LogIn
 } from 'lucide-react';
 
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -54,10 +54,13 @@ interface TrainerProfile {
 
 export default function TrainerPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  
+  // Auth Form Fields
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [fullNameInput, setFullNameInput] = useState('');
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [customCodeInput, setCustomCodeInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -66,7 +69,7 @@ export default function TrainerPortal() {
   const [copied, setCopied] = useState(false);
   const [notification, setNotification] = useState('');
 
-  // Default Blank State for Real User
+  // Default Profile Structure
   const [profile, setProfile] = useState<TrainerProfile>({
     name: 'Trainer',
     email: '',
@@ -94,7 +97,7 @@ export default function TrainerPortal() {
   const [bankForm, setBankForm] = useState<BankDetails>(profile.bankDetails);
   const [payoutRequested, setPayoutRequested] = useState(false);
 
-  // Load Real Profile from Storage by Logged-in Email
+  // Restore session
   useEffect(() => {
     const activeEmail = localStorage.getItem('sm_trainer_active_email');
     if (activeEmail) {
@@ -113,15 +116,15 @@ export default function TrainerPortal() {
     }
   }, []);
 
-  // Handle Real Authentication (Login / Register)
-  const handleAuth = (e: React.FormEvent) => {
+  // Handle Sign In & Sign Up
+  const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     const cleanEmail = emailInput.trim().toLowerCase();
     const cleanPass = passwordInput.trim();
 
     if (!cleanEmail || !cleanPass) {
-      setAuthError('Email aur Password bharna zaroori hai.');
+      setAuthError('Email aur Password dono bharne zaroori hain.');
       return;
     }
 
@@ -133,19 +136,34 @@ export default function TrainerPortal() {
     const storageKey = `sm_trainer_data_${cleanEmail}`;
     const existing = localStorage.getItem(storageKey);
 
-    let userProfile: TrainerProfile;
-
-    if (existing) {
-      userProfile = JSON.parse(existing);
+    if (authMode === 'signin') {
+      if (!existing) {
+        setAuthError('Account nahi mila! Kripya pehle "Create New Account" par click karein.');
+        return;
+      }
+      const userProfile: TrainerProfile = JSON.parse(existing);
+      setProfile(userProfile);
+      setSocialForm(userProfile.socials);
+      setBankForm(userProfile.bankDetails);
+      setIsAuthenticated(true);
+      localStorage.setItem('sm_trainer_active_email', cleanEmail);
+      localStorage.setItem('sm_trainer_authenticated', 'true');
+      setNotification(`Welcome back, ${userProfile.name}!`);
+      setTimeout(() => setNotification(''), 3000);
     } else {
-      // Automatic New Profile Generation for Real User
+      // Sign Up Flow
+      if (existing) {
+        setAuthError('Yeh email pehle se registered hai. Kripya "Sign In" karein.');
+        return;
+      }
+
       const derivedName = fullNameInput.trim() || cleanEmail.split('@')[0];
-      const cleanCode = (derivedName.replace(/[^a-zA-Z]/g, '').slice(0, 8) || 'TRAINER').toUpperCase() + '40';
-      
-      userProfile = {
+      const assignedCode = (customCodeInput.trim().toUpperCase() || derivedName.replace(/[^a-zA-Z]/g, '').slice(0, 7) + '40').toUpperCase();
+
+      const newProfile: TrainerProfile = {
         name: derivedName.charAt(0).toUpperCase() + derivedName.slice(1),
         email: cleanEmail,
-        code: cleanCode,
+        code: assignedCode,
         commissionRate: 40,
         totalStudents: 0,
         totalEarnings: 0,
@@ -158,42 +176,51 @@ export default function TrainerPortal() {
           upiId: ''
         },
         socials: {
-          instagramHandle: '@' + derivedName.toLowerCase(),
+          instagramHandle: '@' + derivedName.toLowerCase().replace(/\s+/g, '_'),
           instagramFollowers: '0',
           youtubeChannel: '',
           youtubeSubscribers: '0'
         }
       };
-      localStorage.setItem(storageKey, JSON.stringify(userProfile));
-    }
 
-    setProfile(userProfile);
-    setSocialForm(userProfile.socials);
-    setBankForm(userProfile.bankDetails);
-    setIsAuthenticated(true);
-    localStorage.setItem('sm_trainer_active_email', cleanEmail);
-    localStorage.setItem('sm_trainer_authenticated', 'true');
-    setNotification(`Welcome, ${userProfile.name}! Real-time portal active.`);
-    setTimeout(() => setNotification(''), 3000);
+      localStorage.setItem(storageKey, JSON.stringify(newProfile));
+      localStorage.setItem('sm_trainer_active_email', cleanEmail);
+      localStorage.setItem('sm_trainer_authenticated', 'true');
+      setProfile(newProfile);
+      setSocialForm(newProfile.socials);
+      setBankForm(newProfile.bankDetails);
+      setIsAuthenticated(true);
+      setNotification(`Account successfully created! Your referral code: ${newProfile.code}`);
+      setTimeout(() => setNotification(''), 3500);
+    }
   };
 
   const handleOAuthLogin = (provider: 'Google' | 'Apple') => {
     setIsAuthLoading(true);
     setTimeout(() => {
-      const email = provider === 'Google' ? 'birinderhr@gmail.com' : 'apple.user@sacredmind.in';
+      const email = provider === 'Google' ? 'birinderhr@gmail.com' : 'apple.creator@sacredmind.in';
       const cleanName = email.split('@')[0].toUpperCase();
-      const userProfile: TrainerProfile = {
-        name: cleanName,
-        email: email,
-        code: `${cleanName.slice(0, 6)}40`,
-        commissionRate: 40,
-        totalStudents: 0,
-        totalEarnings: 0,
-        walletBalance: 0,
-        bankDetails: { accountName: cleanName, bankName: '', accountNumber: '', ifsc: '', upiId: '' },
-        socials: { instagramHandle: '@' + cleanName.toLowerCase(), instagramFollowers: '0', youtubeChannel: '', youtubeSubscribers: '0' }
-      };
-      localStorage.setItem(`sm_trainer_data_${email}`, JSON.stringify(userProfile));
+      const storageKey = `sm_trainer_data_${email}`;
+      let userProfile: TrainerProfile;
+      const existing = localStorage.getItem(storageKey);
+
+      if (existing) {
+        userProfile = JSON.parse(existing);
+      } else {
+        userProfile = {
+          name: cleanName,
+          email: email,
+          code: `${cleanName.slice(0, 6)}40`,
+          commissionRate: 40,
+          totalStudents: 0,
+          totalEarnings: 0,
+          walletBalance: 0,
+          bankDetails: { accountName: cleanName, bankName: '', accountNumber: '', ifsc: '', upiId: '' },
+          socials: { instagramHandle: '@' + cleanName.toLowerCase(), instagramFollowers: '0', youtubeChannel: '', youtubeSubscribers: '0' }
+        };
+        localStorage.setItem(storageKey, JSON.stringify(userProfile));
+      }
+
       localStorage.setItem('sm_trainer_active_email', email);
       localStorage.setItem('sm_trainer_authenticated', 'true');
       setProfile(userProfile);
@@ -201,7 +228,7 @@ export default function TrainerPortal() {
       setBankForm(userProfile.bankDetails);
       setIsAuthLoading(false);
       setIsAuthenticated(true);
-      setNotification(`Connected via ${provider} Account!`);
+      setNotification(`Authorized with ${provider}!`);
       setTimeout(() => setNotification(''), 3000);
     }, 600);
   };
@@ -224,7 +251,7 @@ export default function TrainerPortal() {
     const updated = { ...profile, socials: socialForm };
     setProfile(updated);
     localStorage.setItem(`sm_trainer_data_${profile.email.toLowerCase()}`, JSON.stringify(updated));
-    setNotification('Real Social Profiles saved successfully!');
+    setNotification('Creator handles saved successfully!');
     setTimeout(() => setNotification(''), 3000);
   };
 
@@ -233,21 +260,21 @@ export default function TrainerPortal() {
     const updated = { ...profile, bankDetails: bankForm };
     setProfile(updated);
     localStorage.setItem(`sm_trainer_data_${profile.email.toLowerCase()}`, JSON.stringify(updated));
-    setNotification('Real Bank & UPI details saved!');
+    setNotification('Bank & UPI details linked!');
     setTimeout(() => setNotification(''), 3000);
   };
 
   const handleRequestPayout = () => {
     if (profile.walletBalance <= 0) {
-      alert('Wallet balance ₹0 hai. Student enrollments aane par payout unlock hoga.');
+      alert('Wallet balance ₹0 hai. Student enrollments hone par instant withdrawal open hoga.');
       return;
     }
     setPayoutRequested(true);
-    setNotification('Payout request sent to Super Admin!');
+    setNotification('Payout request sent to Super Admin for transfer!');
     setTimeout(() => setNotification(''), 4000);
   };
 
-  // 🔒 LOGIN / REGISTRATION GATE
+  // 🔒 VISUAL SIGN IN / SIGN UP AUTHENTICATION CARD
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-slate-100 font-sans selection:bg-purple-600 selection:text-white">
@@ -258,11 +285,33 @@ export default function TrainerPortal() {
               <Sparkles className="w-7 h-7" />
             </div>
             <h2 className="text-2xl font-black bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
-              {isRegisterMode ? 'Create Trainer Account' : 'Creator & Trainer Hub'}
+              Creator & Trainer Hub
             </h2>
             <p className="text-xs text-slate-400">
-              {isRegisterMode ? 'Enter details to start earning 40% lifetime commission' : 'Enter your registered email & password to manage earnings'}
+              {authMode === 'signin' 
+                ? 'Sign in to monitor live commission & withdraw earnings'
+                : 'Create a new account to unlock 40% lifetime commission'}
             </p>
+          </div>
+
+          {/* DUAL MODE SELECTOR: SIGN IN / SIGN UP */}
+          <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-950 border border-slate-800">
+            <button
+              type="button"
+              onClick={() => { setAuthMode('signin'); setAuthError(''); }}
+              className={`py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${authMode === 'signin' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAuthMode('signup'); setAuthError(''); }}
+              className={`py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${authMode === 'signup' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Create New Account</span>
+            </button>
           </div>
 
           {authError && (
@@ -272,26 +321,43 @@ export default function TrainerPortal() {
             </div>
           )}
 
-          <form onSubmit={handleAuth} className="space-y-4">
-            {isRegisterMode && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Your Full Name</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    required
-                    value={fullNameInput}
-                    onChange={(e) => setFullNameInput(e.target.value)}
-                    placeholder="Birinder Singh"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
-                  />
+          {/* MAIN FORM */}
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {authMode === 'signup' && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      required
+                      value={fullNameInput}
+                      onChange={(e) => setFullNameInput(e.target.value)}
+                      placeholder="Birinder Singh"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Custom Referral Coupon (Optional)</label>
+                  <div className="relative">
+                    <Sparkles className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      value={customCodeInput}
+                      onChange={(e) => setCustomCodeInput(e.target.value.toUpperCase())}
+                      placeholder="BIRINDER40"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white uppercase font-mono focus:border-purple-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Trainer Email</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
                 <input
@@ -299,7 +365,7 @@ export default function TrainerPortal() {
                   required
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="birinderhr@gmail.com"
+                  placeholder="name@example.com"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
                 />
               </div>
@@ -331,23 +397,14 @@ export default function TrainerPortal() {
               type="submit"
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold text-xs text-white transition shadow-lg shadow-purple-600/30 hover:opacity-95"
             >
-              {isRegisterMode ? 'Register & Generate Referral Code' : 'Sign In to Trainer Portal'}
+              {authMode === 'signin' ? 'Sign In' : 'Complete Registration & Start Earning'}
             </button>
-
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); }}
-                className="text-xs text-purple-400 hover:underline"
-              >
-                {isRegisterMode ? 'Already have an account? Sign In' : 'First time here? Register as a New Trainer'}
-              </button>
-            </div>
           </form>
 
+          {/* SOCIAL FAST ACCESS */}
           <div className="relative flex py-1 items-center">
             <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[11px] text-slate-500 uppercase font-mono">Or 1-Click Social Sign In</span>
+            <span className="flex-shrink mx-4 text-[11px] text-slate-500 uppercase font-mono">Instant 1-Click</span>
             <div className="flex-grow border-t border-slate-800"></div>
           </div>
 
@@ -384,7 +441,7 @@ export default function TrainerPortal() {
     );
   }
 
-  // ✅ 2. REAL USER DASHBOARD (LIVE DATA)
+  // ✅ AUTHENTICATED CREATOR DASHBOARD
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-600 selection:text-white pb-24">
       
@@ -396,7 +453,7 @@ export default function TrainerPortal() {
             <div className="flex items-center space-x-2">
               <span className="font-black text-lg text-white">Sacred Mind Creator Hub</span>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                Verified Account
+                Verified Creator
               </span>
             </div>
             <p className="text-[11px] text-slate-400">{profile.email}</p>
@@ -431,7 +488,7 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* REAL REFERRAL HEADER BANNER */}
+        {/* PROFILE BANNER */}
         <div className="p-6 rounded-3xl bg-slate-900/70 border border-purple-500/40 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 shadow-xl">
           <div className="flex items-center space-x-4 w-full md:w-auto">
             <div className="w-16 h-16 rounded-2xl bg-purple-950 border border-purple-500/40 flex items-center justify-center text-2xl font-black text-purple-300 overflow-hidden shrink-0">
@@ -447,11 +504,11 @@ export default function TrainerPortal() {
               <div className="flex items-center space-x-4 mt-1 text-xs text-slate-400">
                 <span className="flex items-center space-x-1.5 text-pink-400 font-semibold">
                   <InstagramIcon className="w-3.5 h-3.5" />
-                  <span>{profile.socials.instagramHandle || 'Add Instagram Handle'}</span>
+                  <span>{profile.socials.instagramHandle || 'Link Instagram'}</span>
                 </span>
                 <span className="flex items-center space-x-1.5 text-rose-400 font-semibold">
                   <YoutubeIcon className="w-3.5 h-3.5" />
-                  <span>{profile.socials.youtubeChannel || 'Add YouTube Channel'}</span>
+                  <span>{profile.socials.youtubeChannel || 'Link YouTube'}</span>
                 </span>
               </div>
             </div>
@@ -475,7 +532,7 @@ export default function TrainerPortal() {
           </div>
         </div>
 
-        {/* METRICS CARDS */}
+        {/* METRICS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
             <div className="flex items-center justify-between text-slate-400 mb-3">
@@ -483,7 +540,7 @@ export default function TrainerPortal() {
               <Users className="w-5 h-5 text-purple-400" />
             </div>
             <div className="text-3xl font-black text-white">{profile.totalStudents}</div>
-            <span className="text-[10px] text-slate-500 font-mono mt-1 inline-block">Realtime Tracking</span>
+            <span className="text-[10px] text-slate-500 font-mono mt-1 inline-block">Realtime Verified</span>
           </div>
 
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
@@ -497,7 +554,7 @@ export default function TrainerPortal() {
 
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-purple-500/40 shadow-lg shadow-purple-950/40">
             <div className="flex items-center justify-between text-purple-300 mb-3">
-              <span className="text-xs font-semibold">Wallet Balance</span>
+              <span className="text-xs font-semibold">Available Wallet Balance</span>
               <Wallet className="w-5 h-5 text-pink-400" />
             </div>
             <div className="text-3xl font-black text-white">₹{profile.walletBalance.toLocaleString('en-IN')}</div>
@@ -515,9 +572,9 @@ export default function TrainerPortal() {
               <span className="text-xs font-semibold">Linked Bank Account</span>
               <Landmark className="w-5 h-5 text-amber-400" />
             </div>
-            <div className="text-sm font-bold text-white line-clamp-1">{profile.bankDetails.bankName || 'Not Linked Yet'}</div>
+            <div className="text-sm font-bold text-white line-clamp-1">{profile.bankDetails.bankName || 'Not Set'}</div>
             <span className="text-[10px] text-slate-400 block mt-1 font-mono">
-              {profile.bankDetails.accountNumber ? `A/C: •••• ${profile.bankDetails.accountNumber.slice(-4)}` : 'Click below to set bank'}
+              {profile.bankDetails.accountNumber ? `A/C: •••• ${profile.bankDetails.accountNumber.slice(-4)}` : 'Set Bank Account below'}
             </span>
           </div>
         </div>
@@ -550,25 +607,25 @@ export default function TrainerPortal() {
           </button>
         </div>
 
-        {/* TAB 1: REAL SALES LOGS */}
+        {/* TAB 1: FEED */}
         {activeTab === 'overview' && (
           <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800">
-            <h3 className="text-base font-bold text-white mb-2">Live Social Attribution</h3>
+            <h3 className="text-base font-bold text-white mb-2">Realtime Social Attribution</h3>
             <p className="text-xs text-slate-400 mb-6">
-              When students buy courses using your referral code <strong className="text-purple-400">{profile.code}</strong>, your commissions appear here automatically.
+              When students buy courses using code <strong className="text-purple-400">{profile.code}</strong>, commissions show up here.
             </p>
 
             {profile.totalStudents === 0 ? (
               <div className="py-12 text-center text-slate-500 text-xs space-y-2 border border-dashed border-slate-800 rounded-2xl">
                 <Users className="w-8 h-8 mx-auto text-slate-600" />
-                <p>No student purchases recorded yet for your account.</p>
-                <p className="text-slate-400 font-medium">Share your referral link on Instagram or YouTube to get your first 40% payout!</p>
+                <p>No student enrollments yet.</p>
+                <p className="text-slate-400 font-medium">Share your referral link on your Instagram bio or YouTube to start earning!</p>
               </div>
             ) : null}
           </div>
         )}
 
-        {/* TAB 2: MONETIZATION STREAMS */}
+        {/* TAB 2: MONETIZATION */}
         {activeTab === 'monetization' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-3xl bg-slate-900/60 border border-pink-500/30 space-y-3">
@@ -577,7 +634,7 @@ export default function TrainerPortal() {
               </div>
               <h4 className="text-base font-bold text-white">Instagram Bio & Broadcast</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Put your referral link in your Instagram bio. Earn 40% automatically on every ₹499 enrollment.
+                Put your referral link in your bio. Get 40% automated commission for each enrollment.
               </p>
               <button
                 onClick={() => copyReferral('insta_bio')}
@@ -591,9 +648,9 @@ export default function TrainerPortal() {
               <div className="w-10 h-10 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center">
                 <YoutubeIcon className="w-5 h-5" />
               </div>
-              <h4 className="text-base font-bold text-white">YouTube Pinned Comment</h4>
+              <h4 className="text-base font-bold text-white">YouTube Pinned Link</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Pin your link under your video tutorials. YouTube viewers will directly enter your revenue pipeline.
+                Pin your referral link in comments and descriptions. Video viewers turn into recurring revenue.
               </p>
               <button
                 onClick={() => copyReferral('yt_pinned')}
@@ -607,12 +664,12 @@ export default function TrainerPortal() {
               <div className="w-10 h-10 rounded-xl bg-purple-950/60 text-purple-400 flex items-center justify-center">
                 <Award className="w-5 h-5" />
               </div>
-              <h4 className="text-base font-bold text-white">Publish Course Series</h4>
+              <h4 className="text-base font-bold text-white">Dedicated Course Series</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Upload your own training course series on Sacred Mind and earn up to 60% revenue share!
+                Publish a course series on Sacred Mind and earn up to 60% revenue share!
               </p>
               <button
-                onClick={() => alert('Submit your course outline directly to info@sacredmind.in')}
+                onClick={() => alert('Reach out directly to info@sacredmind.in')}
                 className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition"
               >
                 Pitch Course Series
@@ -621,12 +678,12 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* TAB 3: SOCIAL SETTINGS */}
+        {/* TAB 3: SOCIALS */}
         {activeTab === 'socials' && (
           <div className="max-w-2xl bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 md:p-8">
-            <h3 className="text-base font-bold text-white mb-1">Your Real Social Profile Handles</h3>
+            <h3 className="text-base font-bold text-white mb-1">Your Creator Social Handles</h3>
             <p className="text-xs text-slate-400 mb-6">
-              Link your actual Instagram handle and YouTube channel to enable auto-attribution.
+              Link your channels so Sacred Mind can track traffic and upgrade your tier.
             </p>
 
             <form onSubmit={handleSaveSocials} className="space-y-4">
@@ -642,18 +699,18 @@ export default function TrainerPortal() {
                       required
                       value={socialForm.instagramHandle}
                       onChange={(e) => setSocialForm({ ...socialForm, instagramHandle: e.target.value })}
-                      placeholder="@yourusername"
+                      placeholder="@yourhandle"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Instagram Followers</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Followers Count</label>
                   <input
                     type="text"
                     value={socialForm.instagramFollowers}
                     onChange={(e) => setSocialForm({ ...socialForm, instagramFollowers: e.target.value })}
-                    placeholder="e.g. 10K"
+                    placeholder="e.g. 50K"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
                   />
                 </div>
@@ -661,7 +718,7 @@ export default function TrainerPortal() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Channel Name / URL</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Channel</label>
                   <div className="relative">
                     <span className="text-rose-500 absolute left-3.5 top-3">
                       <YoutubeIcon className="w-4 h-4" />
@@ -676,12 +733,12 @@ export default function TrainerPortal() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Subscribers</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Subscribers Count</label>
                   <input
                     type="text"
                     value={socialForm.youtubeSubscribers}
                     onChange={(e) => setSocialForm({ ...socialForm, youtubeSubscribers: e.target.value })}
-                    placeholder="e.g. 5K"
+                    placeholder="e.g. 15K"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
                   />
                 </div>
@@ -697,15 +754,15 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* TAB 4: BANK DETAILS */}
+        {/* TAB 4: BANK */}
         {activeTab === 'bank' && (
           <div className="max-w-2xl bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 md:p-8">
             <div className="flex items-center space-x-2 text-purple-400 font-bold text-base mb-1">
               <Landmark className="w-5 h-5" />
-              <span>Direct Bank & UPI Transfer Account</span>
+              <span>Direct Bank & UPI Transfer Setup</span>
             </div>
             <p className="text-xs text-slate-400 mb-6">
-              Enter your real bank account or UPI ID to receive payouts.
+              When you withdraw funds, Super Admin will directly release payments to this account.
             </p>
 
             <form onSubmit={handleSaveBank} className="space-y-4">
@@ -727,7 +784,7 @@ export default function TrainerPortal() {
                     required
                     value={bankForm.bankName}
                     onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
-                    placeholder="e.g. State Bank of India, HDFC"
+                    placeholder="e.g. HDFC Bank, SBI"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
                   />
                 </div>
@@ -762,7 +819,7 @@ export default function TrainerPortal() {
                   type="text"
                   value={bankForm.upiId}
                   onChange={(e) => setBankForm({ ...bankForm, upiId: e.target.value })}
-                  placeholder="yourname@okaxis"
+                  placeholder="name@okaxis"
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-mono outline-none"
                 />
               </div>
