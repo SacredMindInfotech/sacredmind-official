@@ -7,9 +7,24 @@ import {
   Users, DollarSign, BookOpen, Sparkles, Copy, 
   Check, ArrowUpRight, TrendingUp, Plus, Video, 
   Wallet, Award, Clock, ChevronRight, Landmark, AlertCircle,
-  Lock, LogOut, KeyRound, Mail, Instagram, Youtube, ExternalLink,
+  Lock, LogOut, KeyRound, Mail, ExternalLink,
   Share2, ShieldCheck, PlayCircle
 } from 'lucide-react';
+
+// Custom Crisp Brand SVGs to prevent build errors
+const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
+
+const YoutubeIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
 
 interface BankDetails {
   accountName: string;
@@ -29,7 +44,6 @@ interface SocialChannels {
 interface TrainerProfile {
   name: string;
   email: string;
-  avatar: string;
   code: string;
   commissionRate: number;
   totalStudents: number;
@@ -57,7 +71,6 @@ export default function TrainerPortal() {
   const [profile, setProfile] = useState<TrainerProfile>({
     name: 'Harpreet Singh',
     email: 'harpreet@sacredmind.in',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     code: 'HARPREET40',
     commissionRate: 40,
     totalStudents: 142,
@@ -98,9 +111,9 @@ export default function TrainerPortal() {
       setIsAuthLoading(false);
       setIsAuthenticated(true);
       localStorage.setItem('sm_trainer_authenticated', 'true');
-      setNotification(`Successfully signed in via ${provider}! Welcome back, ${profile.name}`);
+      setNotification(`Signed in via ${provider}! Welcome, ${profile.name}`);
       setTimeout(() => setNotification(''), 3000);
-    }, 800);
+    }, 700);
   };
 
   // Email / Passkey Login
@@ -111,7 +124,7 @@ export default function TrainerPortal() {
       localStorage.setItem('sm_trainer_authenticated', 'true');
       setAuthError('');
     } else {
-      setAuthError('Please enter valid email and 4+ character passkey.');
+      setAuthError('Please enter a valid email and 4+ character passkey.');
     }
   };
 
@@ -131,7 +144,7 @@ export default function TrainerPortal() {
     e.preventDefault();
     const updated = { ...profile, socials: socialForm };
     setProfile(updated);
-    setNotification('Instagram & YouTube monetization profile updated!');
+    setNotification('Instagram & YouTube creator channels linked!');
     setTimeout(() => setNotification(''), 3000);
   };
 
@@ -213,7 +226,7 @@ export default function TrainerPortal() {
                 <div className="flex-grow border-t border-slate-800"></div>
               </div>
 
-              {/* EMAIL OTP/PASSKEY BUTTON */}
+              {/* EMAIL SIGN IN */}
               <button
                 onClick={() => setAuthMethod('email')}
                 className="w-full py-3 px-4 rounded-2xl bg-purple-950/60 border border-purple-600/40 hover:bg-purple-900/60 text-purple-300 font-bold text-xs flex items-center justify-center space-x-2 transition"
@@ -231,19 +244,19 @@ export default function TrainerPortal() {
                   required
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="name@example.com"
+                  placeholder="harpreet@sacredmind.in"
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Referral Passkey / Password</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Referral Passkey / Code</label>
                 <input
                   type="password"
                   required
                   value={passcodeInput}
                   onChange={(e) => setPasscodeInput(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="HARPREET40"
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
                 />
               </div>
@@ -276,7 +289,7 @@ export default function TrainerPortal() {
     );
   }
 
-  // ✅ 2. AUTHENTICATED TRAINER & CREATOR HUB
+  // ✅ 2. AUTHENTICATED CREATOR HUB
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-600 selection:text-white pb-24">
       
@@ -323,7 +336,7 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* PROFILE & SOCIAL AUDIENCE CARD */}
+        {/* SOCIAL REACH BANNER */}
         <div className="p-6 rounded-3xl bg-slate-900/70 border border-purple-500/40 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 shadow-xl">
           <div className="flex items-center space-x-4 w-full md:w-auto">
             <div className="w-16 h-16 rounded-2xl bg-purple-950 border border-purple-500/40 flex items-center justify-center text-xl font-bold text-purple-300 overflow-hidden shrink-0">
@@ -337,32 +350,31 @@ export default function TrainerPortal() {
                 </span>
               </div>
               <div className="flex items-center space-x-4 mt-1 text-xs text-slate-400">
-                <span className="flex items-center space-x-1 text-pink-400 font-semibold">
-                  <Instagram className="w-3.5 h-3.5" />
+                <span className="flex items-center space-x-1.5 text-pink-400 font-semibold">
+                  <InstagramIcon className="w-3.5 h-3.5" />
                   <span>{profile.socials.instagramHandle} ({profile.socials.instagramFollowers})</span>
                 </span>
-                <span className="flex items-center space-x-1 text-rose-400 font-semibold">
-                  <Youtube className="w-3.5 h-3.5" />
+                <span className="flex items-center space-x-1.5 text-rose-400 font-semibold">
+                  <YoutubeIcon className="w-3.5 h-3.5" />
                   <span>{profile.socials.youtubeChannel} ({profile.socials.youtubeSubscribers})</span>
                 </span>
               </div>
             </div>
           </div>
 
-          {/* INSTANT SHARE LINKS FOR INSTA & YOUTUBE */}
           <div className="flex items-center space-x-2 w-full md:w-auto">
             <button
               onClick={() => copyReferral('instagram_bio')}
               className="px-3.5 py-2.5 bg-pink-950/60 border border-pink-500/40 hover:bg-pink-900/60 text-pink-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
             >
-              <Instagram className="w-3.5 h-3.5" />
-              <span>Copy Instagram Bio Link</span>
+              <InstagramIcon className="w-3.5 h-3.5" />
+              <span>Copy Insta Bio Link</span>
             </button>
             <button
               onClick={() => copyReferral('youtube_desc')}
               className="px-3.5 py-2.5 bg-rose-950/60 border border-rose-500/40 hover:bg-rose-900/60 text-rose-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
             >
-              <Youtube className="w-3.5 h-3.5" />
+              <YoutubeIcon className="w-3.5 h-3.5" />
               <span>Copy YouTube Link</span>
             </button>
           </div>
@@ -443,7 +455,7 @@ export default function TrainerPortal() {
           </button>
         </div>
 
-        {/* TAB 1: OVERVIEW TRAFFIC FEED */}
+        {/* TAB 1: TRAFFIC FEED */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800">
@@ -472,12 +484,12 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* TAB 2: MONETIZATION TOOLKIT FOR CREATORS */}
+        {/* TAB 2: MONETIZATION STREAMS */}
         {activeTab === 'monetization' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-3xl bg-slate-900/60 border border-pink-500/30 space-y-3">
               <div className="w-10 h-10 rounded-xl bg-pink-950/60 text-pink-400 flex items-center justify-center">
-                <Instagram className="w-5 h-5" />
+                <InstagramIcon className="w-5 h-5" />
               </div>
               <h4 className="text-base font-bold text-white">Instagram Bio & Broadcast</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -493,7 +505,7 @@ export default function TrainerPortal() {
 
             <div className="p-6 rounded-3xl bg-slate-900/60 border border-rose-500/30 space-y-3">
               <div className="w-10 h-10 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center">
-                <Youtube className="w-5 h-5" />
+                <YoutubeIcon className="w-5 h-5" />
               </div>
               <h4 className="text-base font-bold text-white">YouTube Pinned Comment</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -525,7 +537,7 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* TAB 3: SOCIAL HANDLES EDIT */}
+        {/* TAB 3: EDIT SOCIAL CHANNELS */}
         {activeTab === 'socials' && (
           <div className="max-w-2xl bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 md:p-8">
             <h3 className="text-base font-bold text-white mb-1">Your Creator Social Profiles</h3>
@@ -538,7 +550,9 @@ export default function TrainerPortal() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Instagram Handle</label>
                   <div className="relative">
-                    <Instagram className="w-4 h-4 text-pink-400 absolute left-3.5 top-3" />
+                    <span className="text-pink-400 absolute left-3.5 top-3">
+                      <InstagramIcon className="w-4 h-4" />
+                    </span>
                     <input
                       type="text"
                       required
@@ -565,7 +579,9 @@ export default function TrainerPortal() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Channel Name / URL</label>
                   <div className="relative">
-                    <Youtube className="w-4 h-4 text-rose-500 absolute left-3.5 top-3" />
+                    <span className="text-rose-500 absolute left-3.5 top-3">
+                      <YoutubeIcon className="w-4 h-4" />
+                    </span>
                     <input
                       type="text"
                       required
