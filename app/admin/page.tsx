@@ -7,116 +7,131 @@ import {
   Users, DollarSign, BookOpen, Plus, Trash2, 
   CheckCircle2, ShieldCheck, ArrowUpRight, TrendingUp,
   Percent, ArrowLeft, Send, Video, Save, Check, Landmark,
-  Lock, LogOut, KeyRound, Mail, AlertCircle
+  Lock, LogOut, KeyRound, Mail, AlertCircle, Eye, ExternalLink,
+  Sparkles, RefreshCw
 } from 'lucide-react';
 
-interface Trainer {
-  id: string;
-  name: string;
-  email: string;
-  code: string;
-  commissionRate: number;
-  totalReferred: number;
-  totalEarned: number;
-  walletBalance: number;
-  bankAccount: string;
+interface BankDetails {
+  accountName: string;
+  bankName: string;
+  accountNumber: string;
   ifsc: string;
-  upi: string;
+  upiId: string;
 }
 
-interface CourseItem {
+interface SocialChannels {
+  instagramHandle: string;
+  instagramFollowers: string;
+  youtubeChannel: string;
+  youtubeSubscribers: string;
+  isInstagramVerified: boolean;
+  isYoutubeVerified: boolean;
+}
+
+interface SelfCourse {
   id: string;
   title: string;
-  price: string;
   category: string;
+  price: string;
   videoUrl: string;
   episodes: number;
+  salesCount: number;
+  earnings: number;
+  status: 'Live' | 'Review';
 }
 
-interface PayoutRequest {
-  id: string;
-  trainerName: string;
+interface TrainerProfile {
+  name: string;
+  email: string;
+  role: 'Trainer' | 'Influencer';
   code: string;
-  amount: number;
-  bank: {
-    accountName: string;
-    bankName: string;
-    accountNumber: string;
-    ifsc: string;
-    upiId: string;
-  };
-  date: string;
-  status: 'Pending' | 'Paid';
+  commissionRate: number;
+  totalStudents: number;
+  totalEarnings: number;
+  walletBalance: number;
+  bankDetails: BankDetails;
+  socials: SocialChannels;
+  myCourses: SelfCourse[];
 }
 
 export default function SuperAdmin() {
-  // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // Dashboard Tabs
-  const [activeTab, setActiveTab] = useState<'trainers' | 'courses' | 'payouts'>('trainers');
-  
-  // Dynamic Live Trainers
-  const [trainers, setTrainers] = useState<Trainer[]>([
-    { id: '1', name: 'Harpreet Singh', email: 'harpreet@sacredmind.in', code: 'HARPREET40', commissionRate: 40, totalReferred: 142, totalEarned: 42850, walletBalance: 14200, bankAccount: '50100492817291', ifsc: 'HDFC0001234', upi: 'harpreet@okhdfcbank' },
-    { id: '2', name: 'Simran Kaur', email: 'simran@sacredmind.in', code: 'SIMRAN35', commissionRate: 35, totalReferred: 88, totalEarned: 22100, walletBalance: 7500, bankAccount: '309182736451', ifsc: 'SBIN0004521', upi: 'simran@oksbi' },
-    { id: '3', name: 'Rohan Tech', email: 'rohan@sacredmind.in', code: 'ROHAN50', commissionRate: 50, totalReferred: 310, totalEarned: 95400, walletBalance: 28000, bankAccount: '098172635412', ifsc: 'ICIC0000912', upi: 'rohan@icici' },
-  ]);
+  // Dashboard Tabs & Filters
+  const [activeTab, setActiveTab] = useState<'creators' | 'courses' | 'payouts'>('creators');
+  const [roleFilter, setRoleFilter] = useState<'All' | 'Trainer' | 'Influencer'>('All');
+  const [selectedCreatorForModal, setSelectedCreatorForModal] = useState<TrainerProfile | null>(null);
 
-  // Dynamic Live Courses
-  const [courses, setCourses] = useState<CourseItem[]>([
-    { id: 'ai-tools-hacks', title: 'AI Tools & ChatGPT Earning Hacks', price: '₹499', category: 'AI & Tech', videoUrl: 'https://youtube.com/...', episodes: 14 },
-    { id: 'reels-growth-ai', title: 'Instagram Growth & Viral Reels with AI', price: '₹599', category: 'Growth', videoUrl: 'https://youtube.com/...', episodes: 15 },
-    { id: 'lang-punjabi', title: 'Punjabi Speaking & Cultural Fluency', price: '₹499', category: 'Languages', videoUrl: 'https://youtube.com/...', episodes: 12 },
-    { id: 'lang-english', title: 'Daily English Speaking & Fluency', price: '₹699', category: 'Languages', videoUrl: 'https://youtube.com/...', episodes: 20 },
-  ]);
-
-  // Payout Queue
-  const [payouts, setPayouts] = useState<PayoutRequest[]>([
-    {
-      id: 'p1',
-      trainerName: 'Harpreet Singh',
-      code: 'HARPREET40',
-      amount: 14200,
-      bank: { accountName: 'Harpreet Singh', bankName: 'HDFC Bank', accountNumber: '50100492817291', ifsc: 'HDFC0001234', upiId: 'harpreet@okhdfcbank' },
-      date: '02 Sep 2026',
-      status: 'Pending'
-    }
-  ]);
-
-  // Form States
-  const [trainerName, setTrainerName] = useState('');
-  const [trainerEmail, setTrainerEmail] = useState('');
-  const [trainerCode, setTrainerCode] = useState('');
-  const [trainerRate, setTrainerRate] = useState(40);
-
-  const [courseTitle, setCourseTitle] = useState('');
-  const [coursePrice, setCoursePrice] = useState('₹499');
-  const [courseCategory, setCourseCategory] = useState('AI & Tech');
-  const [courseVideo, setCourseVideo] = useState('');
-
+  // Live Synchronized Directory
+  const [creators, setCreators] = useState<TrainerProfile[]>([]);
   const [notification, setNotification] = useState('');
 
-  // Check persistent session on load
+  // Load All Registered Trainers & Influencers from Global Pool
+  const refreshDirectory = () => {
+    try {
+      const raw = localStorage.getItem('sm_global_trainers_pool');
+      if (raw) {
+        setCreators(JSON.parse(raw));
+      } else {
+        // Fallback default list if first time
+        const defaultList: TrainerProfile[] = [
+          {
+            name: 'Birinder Singh',
+            email: 'birinderhr@gmail.com',
+            role: 'Influencer',
+            code: 'BIRINDER50',
+            commissionRate: 50,
+            totalStudents: 34,
+            totalEarnings: 8480,
+            walletBalance: 3200,
+            bankDetails: { accountName: 'Birinder Singh', bankName: 'HDFC Bank', accountNumber: '50100492817291', ifsc: 'HDFC0001234', upiId: 'birinder@okhdfcbank' },
+            socials: { instagramHandle: '@birindersinghofficial', instagramFollowers: '28.5K', youtubeChannel: 'Birinder with AI', youtubeSubscribers: '15.2K', isInstagramVerified: true, isYoutubeVerified: true },
+            myCourses: [
+              { id: 'chatgpt-mastery', title: 'ChatGPT Mastery & AI Cashflow', category: 'AI & Tech', price: '₹499', videoUrl: 'https://youtube.com/watch?v=demo1', episodes: 12, salesCount: 34, earnings: 8480, status: 'Live' }
+            ]
+          },
+          {
+            name: 'Simran Kaur',
+            email: 'simran@sacredmind.in',
+            role: 'Trainer',
+            code: 'SIMRAN40',
+            commissionRate: 40,
+            totalStudents: 18,
+            totalEarnings: 3590,
+            walletBalance: 1200,
+            bankDetails: { accountName: 'Simran Kaur', bankName: 'State Bank of India', accountNumber: '309182736451', ifsc: 'SBIN0004521', upiId: 'simran@oksbi' },
+            socials: { instagramHandle: '@simran_creative', instagramFollowers: '12K', youtubeChannel: '', youtubeSubscribers: '0', isInstagramVerified: true, isYoutubeVerified: false },
+            myCourses: []
+          }
+        ];
+        setCreators(defaultList);
+        localStorage.setItem('sm_global_trainers_pool', JSON.stringify(defaultList));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     const session = localStorage.getItem('sm_admin_authenticated');
     if (session === 'true') {
       setIsAuthenticated(true);
+      refreshDirectory();
     }
   }, []);
 
-  // Handle Admin Login
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (loginEmail.trim().toLowerCase() === 'info@sacredmind.in' && loginPassword.trim() === 'Birinder@8080') {
       setIsAuthenticated(true);
       localStorage.setItem('sm_admin_authenticated', 'true');
+      refreshDirectory();
       setAuthError('');
     } else {
-      setAuthError('गलत Email या Password! कृपया सही क्रेडेंशियल दर्ज करें।');
+      setAuthError('गलत Admin Email या Password!');
     }
   };
 
@@ -125,63 +140,26 @@ export default function SuperAdmin() {
     localStorage.removeItem('sm_admin_authenticated');
   };
 
-  // Live Aggregate Numbers Calculation
-  const totalReferredStudents = trainers.reduce((sum, t) => sum + t.totalReferred, 0);
-  const totalCommissionDisbursed = trainers.reduce((sum, t) => sum + t.totalEarned, 0);
-  const totalPendingPayouts = trainers.reduce((sum, t) => sum + t.walletBalance, 0);
-  const totalPlatformGross = Math.round(totalCommissionDisbursed / 0.42);
-
-  // Add Trainer
-  const handleAddTrainer = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newT: Trainer = {
-      id: String(Date.now()),
-      name: trainerName,
-      email: trainerEmail || `${trainerCode.toLowerCase()}@sacredmind.in`,
-      code: trainerCode.toUpperCase(),
-      commissionRate: Number(trainerRate),
-      totalReferred: 0,
-      totalEarned: 0,
-      walletBalance: 0,
-      bankAccount: 'To be filled by trainer',
-      ifsc: '-',
-      upi: '-'
-    };
-    setTrainers([newT, ...trainers]);
-    setTrainerName('');
-    setTrainerEmail('');
-    setTrainerCode('');
-    setNotification(`Trainer ${newT.name} onboarded with code ${newT.code}!`);
-    setTimeout(() => setNotification(''), 3000);
+  // Settlement
+  const handleReleaseBankTransfer = (email: string) => {
+    const updated = creators.map(c => {
+      if (c.email.toLowerCase() === email.toLowerCase()) {
+        return { ...c, walletBalance: 0 };
+      }
+      return c;
+    });
+    setCreators(updated);
+    localStorage.setItem('sm_global_trainers_pool', JSON.stringify(updated));
+    alert(`Bank Transfer Initiated! Balance settled to ₹0.`);
   };
 
-  // Add Course
-  const handleAddCourse = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanId = courseTitle.toLowerCase().replace(/\s+/g, '-');
-    const newC: CourseItem = {
-      id: cleanId,
-      title: courseTitle,
-      price: coursePrice,
-      category: courseCategory,
-      videoUrl: courseVideo,
-      episodes: 12
-    };
-    setCourses([newC, ...courses]);
-    setCourseTitle('');
-    setCourseVideo('');
-    setNotification(`Course "${newC.title}" published!`);
-    setTimeout(() => setNotification(''), 3000);
-  };
+  // Live Metrics Calculations
+  const filteredCreators = creators.filter(c => roleFilter === 'All' ? true : c.role === roleFilter);
+  const totalStudents = creators.reduce((acc, c) => acc + c.totalStudents, 0);
+  const totalCommissionDisbursed = creators.reduce((acc, c) => acc + c.totalEarnings, 0);
+  const pendingPayouts = creators.reduce((acc, c) => acc + c.walletBalance, 0);
+  const totalSelfPublishedCourses = creators.reduce((acc, c) => acc + (c.myCourses?.length || 0), 0);
 
-  // Settle Bank Payout
-  const handleReleaseBankPayout = (payoutId: string, trainerCode: string) => {
-    setPayouts(payouts.map(p => p.id === payoutId ? { ...p, status: 'Paid' } : p));
-    setTrainers(trainers.map(t => t.code === trainerCode ? { ...t, walletBalance: 0 } : t));
-    alert('Bank transfer initiated! Funds marked as PAID to Trainer account.');
-  };
-
-  // 🔒 LOGIN SCREEN IF NOT AUTHENTICATED
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-slate-100 font-sans selection:bg-purple-600 selection:text-white">
@@ -220,7 +198,7 @@ export default function SuperAdmin() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Admin Security Password</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Security Password</label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
                 <input
@@ -228,7 +206,7 @@ export default function SuperAdmin() {
                   required
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••••••"
+                  placeholder="••••••••"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
                 />
               </div>
@@ -238,21 +216,14 @@ export default function SuperAdmin() {
               type="submit"
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold text-xs text-white shadow-lg shadow-purple-600/30 hover:opacity-90 transition"
             >
-              Authorize & Access Console
+              Access Super Admin
             </button>
           </form>
-
-          <div className="pt-2 text-center">
-            <span className="text-[10px] text-slate-500 font-mono">
-              Protected by Sacred Mind Security Engine
-            </span>
-          </div>
         </div>
       </div>
     );
   }
 
-  // ✅ AUTHENTICATED ADMIN CONSOLE
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 md:p-10 selection:bg-purple-600 selection:text-white pb-24">
       
@@ -264,14 +235,21 @@ export default function SuperAdmin() {
             <div className="flex items-center space-x-2">
               <h1 className="text-2xl font-black text-white">Sacred Mind Super Admin</h1>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                Authorized: info@sacredmind.in
+                Live Sync Engine Active
               </span>
             </div>
-            <p className="text-xs text-slate-400">Realtime Calculations, Live Onboarding & Bank Payout Clearing</p>
+            <p className="text-xs text-slate-400">Managing Trainers (40%), Influencers (50%), Course Audits & Bank Disbursals</p>
           </div>
         </div>
 
         <div className="flex items-center space-x-3">
+          <button
+            onClick={refreshDirectory}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500/40 text-xs font-bold text-slate-300 hover:text-white transition flex items-center space-x-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Sync Live</span>
+          </button>
           <a
             href="https://trainer.sacredmind.in"
             target="_blank"
@@ -290,310 +268,178 @@ export default function SuperAdmin() {
         </div>
       </div>
 
-      {notification && (
-        <div className="max-w-7xl mx-auto mt-4 p-4 rounded-2xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center space-x-2">
-          <Check className="w-4 h-4" />
-          <span>{notification}</span>
-        </div>
-      )}
-
-      {/* REALTIME DYNAMIC OVERVIEW STATS */}
+      {/* OVERVIEW STATS */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 my-8">
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Platform Revenue (Gross)</span>
-          <div className="text-3xl font-black text-white">₹{totalPlatformGross.toLocaleString('en-IN')}</div>
-          <span className="text-[10px] text-emerald-400 font-bold">{totalReferredStudents} Total Enrollments</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Total Creator Partners</span>
+          <div className="text-3xl font-black text-white">{creators.length} Partners</div>
+          <span className="text-[10px] text-emerald-400 font-bold">Trainers & Influencers Live</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Total Commission Disbursed</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Creator Commission Earned</span>
           <div className="text-3xl font-black text-emerald-400">₹{totalCommissionDisbursed.toLocaleString('en-IN')}</div>
-          <span className="text-[10px] text-slate-400 font-mono">Live Referral Ledger</span>
+          <span className="text-[10px] text-slate-500 font-mono">Calculated Per Student Sale</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-purple-500/40">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Pending Bank Payouts</span>
-          <div className="text-3xl font-black text-pink-400">₹{totalPendingPayouts.toLocaleString('en-IN')}</div>
-          <span className="text-[10px] text-purple-300 font-bold">{payouts.filter(p => p.status === 'Pending').length} Request Pending</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Pending Bank Transfers</span>
+          <div className="text-3xl font-black text-pink-400">₹{pendingPayouts.toLocaleString('en-IN')}</div>
+          <span className="text-[10px] text-purple-300 font-bold">Ready to Disburse</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Active Creators & Courses</span>
-          <div className="text-3xl font-black text-purple-400">{trainers.length} / {courses.length}</div>
-          <span className="text-[10px] text-emerald-400 font-bold">All live in database</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Self-Published Courses</span>
+          <div className="text-3xl font-black text-purple-400">{totalSelfPublishedCourses} Modules</div>
+          <span className="text-[10px] text-emerald-400 font-bold">Uploaded by Partners</span>
         </div>
       </div>
 
-      {/* TABS */}
-      <div className="max-w-7xl mx-auto border-b border-slate-800 flex space-x-6 text-sm font-semibold mb-6">
-        <button
-          onClick={() => setActiveTab('trainers')}
-          className={`pb-3 border-b-2 transition ${activeTab === 'trainers' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
-        >
-          Trainers & Commission Rules ({trainers.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('courses')}
-          className={`pb-3 border-b-2 transition ${activeTab === 'courses' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
-        >
-          Courses & Video Manager ({courses.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('payouts')}
-          className={`pb-3 border-b-2 transition ${activeTab === 'payouts' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
-        >
-          Bank Payout Queue ({payouts.filter(p => p.status === 'Pending').length})
-        </button>
-      </div>
-
-      {/* TAB 1: TRAINERS */}
-      {activeTab === 'trainers' && (
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-4 bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 h-fit space-y-4">
-            <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm border-b border-slate-800 pb-3">
-              <Plus className="w-4 h-4" />
-              <span>Onboard Trainer / Influencer Live</span>
-            </div>
-
-            <form onSubmit={handleAddTrainer} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Trainer Name</label>
-                <input
-                  type="text"
-                  required
-                  value={trainerName}
-                  onChange={(e) => setTrainerName(e.target.value)}
-                  placeholder="e.g. Aman Sharma"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Trainer Login Email</label>
-                <input
-                  type="email"
-                  required
-                  value={trainerEmail}
-                  onChange={(e) => setTrainerEmail(e.target.value)}
-                  placeholder="aman@example.com"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Referral Code & Login Key</label>
-                <input
-                  type="text"
-                  required
-                  value={trainerCode}
-                  onChange={(e) => setTrainerCode(e.target.value)}
-                  placeholder="AMAN40"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white uppercase focus:border-purple-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Lifetime Commission Slabs</label>
-                <select
-                  value={trainerRate}
-                  onChange={(e) => setTrainerRate(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 outline-none"
-                >
-                  <option value={30}>30% Revenue Share (Bronze)</option>
-                  <option value={40}>40% Revenue Share (Silver)</option>
-                  <option value={50}>50% Revenue Share (Gold)</option>
-                  <option value={60}>60% Revenue Share (Top Partner)</option>
-                </select>
-              </div>
-
+      {/* DIRECTORY & FILTER */}
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* FILTERS */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="flex space-x-2">
+            {(['All', 'Trainer', 'Influencer'] as const).map((r) => (
               <button
-                type="submit"
-                className="w-full mt-2 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition shadow-lg shadow-purple-600/20"
+                key={r}
+                onClick={() => setRoleFilter(r)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${roleFilter === r ? 'bg-purple-600 text-white shadow' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'}`}
               >
-                Issue Credentials & Live Access
+                {r === 'All' ? `All Creators (${creators.length})` : r === 'Trainer' ? `Trainers (40%)` : `Influencers (50%)`}
               </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-8 space-y-4">
-            {trainers.map((t) => (
-              <div key={t.id} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-purple-500/40 transition space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-base font-bold text-white">{t.name}</h3>
-                      <span className="text-[10px] font-mono bg-purple-950 text-purple-300 px-2 py-0.5 rounded border border-purple-800/40">
-                        Code: {t.code}
-                      </span>
-                    </div>
-                    <span className="text-xs text-slate-400">Login Email: <strong className="text-slate-200">{t.email}</strong> • Cut: <strong className="text-emerald-400">{t.commissionRate}%</strong></span>
-                  </div>
-
-                  <span className="text-xs text-slate-400">Total Referred: <strong className="text-white">{t.totalReferred} Students</strong></span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-800/80 text-xs">
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Total Earned</span>
-                    <strong className="text-emerald-400 text-sm">₹{t.totalEarned.toLocaleString('en-IN')}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Wallet (Unpaid)</span>
-                    <strong className="text-pink-400 text-sm">₹{t.walletBalance.toLocaleString('en-IN')}</strong>
-                  </div>
-                  <div className="col-span-2 sm:col-span-1 flex items-center justify-end">
-                    <span className="text-[11px] text-slate-400 font-mono">Bank: •••• {t.bankAccount.slice(-4)}</span>
-                  </div>
-                </div>
-              </div>
             ))}
           </div>
+
+          <span className="text-xs text-slate-400 font-mono">
+            Auto-Sync Active: When a partner registers or publishes, they appear here instantly.
+          </span>
         </div>
-      )}
 
-      {/* TAB 2: COURSES */}
-      {activeTab === 'courses' && (
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-5 bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 h-fit space-y-4">
-            <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm border-b border-slate-800 pb-3">
-              <Plus className="w-4 h-4" />
-              <span>Add / Publish Micro-Course</span>
-            </div>
-
-            <form onSubmit={handleAddCourse} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Course Title</label>
-                <input
-                  type="text"
-                  required
-                  value={courseTitle}
-                  onChange={(e) => setCourseTitle(e.target.value)}
-                  placeholder="e.g. WhatsApp Automation Mastery"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+        {/* CREATORS LIST WITH IN-DEPTH VIEW */}
+        <div className="grid grid-cols-1 gap-4">
+          {filteredCreators.map((c) => (
+            <div key={c.email} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-purple-500/40 transition space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Rate / Price</label>
-                  <input
-                    type="text"
-                    required
-                    value={coursePrice}
-                    onChange={(e) => setCoursePrice(e.target.value)}
-                    placeholder="₹499"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
-                  />
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg font-black text-white">{c.name}</h3>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${c.role === 'Influencer' ? 'bg-pink-950 text-pink-300 border-pink-800/40' : 'bg-purple-950 text-purple-300 border-purple-800/40'}`}>
+                      {c.role} ({c.commissionRate}%)
+                    </span>
+                    <span className="text-[10px] font-mono bg-slate-950 text-slate-300 px-2 py-0.5 rounded border border-slate-800">
+                      Code: {c.code}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Email: <span className="text-white font-mono">{c.email}</span> • Instagram: <strong className="text-pink-400">{c.socials?.instagramHandle || 'None'}</strong> • YouTube: <strong className="text-rose-400">{c.socials?.youtubeChannel || 'None'}</strong>
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Category</label>
-                  <select
-                    value={courseCategory}
-                    onChange={(e) => setCourseCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 outline-none"
+
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setSelectedCreatorForModal(c)}
+                    className="px-4 py-2 rounded-xl bg-purple-950/60 border border-purple-600/40 hover:bg-purple-900/60 text-xs font-bold text-purple-300 transition flex items-center space-x-1.5"
                   >
-                    <option>AI & Tech</option>
-                    <option>Growth & Reels</option>
-                    <option>Languages</option>
-                    <option>Finance & Crypto</option>
-                  </select>
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Audit Courses & Videos ({c.myCourses?.length || 0})</span>
+                  </button>
+
+                  {c.walletBalance > 0 ? (
+                    <button
+                      onClick={() => handleReleaseBankTransfer(c.email)}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5"
+                    >
+                      <Landmark className="w-3.5 h-3.5" />
+                      <span>Transfer ₹{c.walletBalance} to Bank</span>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-500 font-mono px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                      All Settled ✓
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Unlisted Video Link</label>
-                <input
-                  type="text"
-                  required
-                  value={courseVideo}
-                  onChange={(e) => setCourseVideo(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-xs font-bold text-white transition shadow-lg shadow-purple-600/20"
-              >
-                Publish Course Live
-              </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-7 space-y-3">
-            {courses.map((c) => (
-              <div key={c.id} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+              {/* BANK DETAILS ROW */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-800/80 text-xs">
                 <div>
-                  <span className="text-[10px] uppercase font-mono text-purple-400 bg-purple-950 px-2 py-0.5 rounded">
-                    {c.category}
+                  <span className="text-[10px] text-slate-500 block uppercase font-mono">Bank Name</span>
+                  <strong className="text-white">{c.bankDetails?.bankName || 'Not Linked'}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block uppercase font-mono">A/C & IFSC</span>
+                  <span className="font-mono text-purple-300">
+                    {c.bankDetails?.accountNumber ? `${c.bankDetails.accountNumber} (${c.bankDetails.ifsc})` : 'Pending Setup'}
                   </span>
-                  <h4 className="text-sm font-bold text-white mt-1">{c.title}</h4>
-                  <span className="text-xs text-slate-400">{c.episodes} Episodes • YouTube Linked</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-base font-black text-emerald-400 block">{c.price}</span>
-                  <a
-                    href={`https://www.sacredmind.in/learn/${c.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-purple-400 hover:underline"
-                  >
-                    Preview LMS →
-                  </a>
+                <div>
+                  <span className="text-[10px] text-slate-500 block uppercase font-mono">UPI ID</span>
+                  <span className="font-mono text-emerald-400">{c.bankDetails?.upiId || 'None'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block uppercase font-mono">Wallet (Unpaid)</span>
+                  <strong className="text-pink-400 text-sm">₹{c.walletBalance.toLocaleString('en-IN')}</strong>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      )}
 
-      {/* TAB 3: BANK PAYOUTS */}
-      {activeTab === 'payouts' && (
-        <div className="max-w-7xl mx-auto space-y-4">
-          <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800">
-            <h3 className="text-base font-bold text-white mb-4">Pending Trainer Bank Withdrawal Requests</h3>
+      </div>
+
+      {/* POPUP MODAL: INSPECT TRAINER COURSES & VIDEOS */}
+      {selectedCreatorForModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="max-w-2xl w-full bg-slate-900 border border-purple-500/40 rounded-3xl p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
             
-            <div className="space-y-4">
-              {payouts.map((p) => (
-                <div key={p.id} className="p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <strong className="text-white text-base">{p.trainerName}</strong>
-                      <span className="text-[10px] font-mono bg-purple-950 text-purple-300 px-2 py-0.5 rounded">Code: {p.code}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">{p.date}</span>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-white">{selectedCreatorForModal.name}'s Published Modules</h3>
+                <span className="text-xs text-purple-400">{selectedCreatorForModal.email} • {selectedCreatorForModal.role}</span>
+              </div>
+              <button
+                onClick={() => setSelectedCreatorForModal(null)}
+                className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400 hover:text-white"
+              >
+                Close ✕
+              </button>
+            </div>
+
+            {(!selectedCreatorForModal.myCourses || selectedCreatorForModal.myCourses.length === 0) ? (
+              <div className="py-12 text-center text-slate-500 text-xs space-y-2">
+                <Video className="w-10 h-10 mx-auto text-slate-600" />
+                <p>This partner has not published any courses yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {selectedCreatorForModal.myCourses.map((crs) => (
+                  <div key={crs.id} className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-sm text-white">{crs.title}</strong>
+                      <span className="text-xs font-black text-emerald-400">{crs.price}</span>
                     </div>
                     <p className="text-xs text-slate-400">
-                      Bank: <strong className="text-white">{p.bank.bankName}</strong> | A/C: <span className="font-mono text-purple-300">{p.bank.accountNumber}</span> | IFSC: <span className="font-mono text-purple-300">{p.bank.ifsc}</span>
+                      Category: <span className="text-purple-300">{crs.category}</span> • Episodes: {crs.episodes}
                     </p>
-                    {p.bank.upiId && (
-                      <p className="text-xs text-slate-400">UPI: <span className="font-mono text-emerald-400">{p.bank.upiId}</span></p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-500 uppercase block">Payout Amount</span>
-                      <span className="text-xl font-black text-emerald-400">₹{p.amount.toLocaleString('en-IN')}</span>
-                    </div>
-
-                    {p.status === 'Pending' ? (
-                      <button
-                        onClick={() => handleReleaseBankPayout(p.id, p.code)}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5"
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                      <span className="truncate max-w-sm text-slate-400 font-mono">{crs.videoUrl}</span>
+                      <a
+                        href={crs.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-400 hover:underline flex items-center space-x-1 shrink-0 ml-2"
                       >
-                        <Landmark className="w-4 h-4" />
-                        <span>Transfer & Clear Payout ✓</span>
-                      </button>
-                    ) : (
-                      <span className="px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
-                        Transferred to Bank ✓
-                      </span>
-                    )}
+                        <span>Watch Video</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
           </div>
         </div>
       )}
