@@ -6,12 +6,14 @@ import Link from 'next/link';
 import { 
   Users, DollarSign, BookOpen, Plus, Trash2, 
   CheckCircle2, ShieldCheck, ArrowUpRight, TrendingUp,
-  Percent, ArrowLeft, Send, Video, Save, Check, Landmark
+  Percent, ArrowLeft, Send, Video, Save, Check, Landmark,
+  Lock, LogOut, KeyRound, Mail, AlertCircle
 } from 'lucide-react';
 
 interface Trainer {
   id: string;
   name: string;
+  email: string;
   code: string;
   commissionRate: number;
   totalReferred: number;
@@ -48,13 +50,20 @@ interface PayoutRequest {
 }
 
 export default function SuperAdmin() {
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // Dashboard Tabs
   const [activeTab, setActiveTab] = useState<'trainers' | 'courses' | 'payouts'>('trainers');
   
   // Dynamic Live Trainers
   const [trainers, setTrainers] = useState<Trainer[]>([
-    { id: '1', name: 'Harpreet Singh', code: 'HARPREET40', commissionRate: 40, totalReferred: 142, totalEarned: 42850, walletBalance: 14200, bankAccount: '50100492817291', ifsc: 'HDFC0001234', upi: 'harpreet@okhdfcbank' },
-    { id: '2', name: 'Simran Kaur (Creator)', code: 'SIMRAN35', commissionRate: 35, totalReferred: 88, totalEarned: 22100, walletBalance: 7500, bankAccount: '309182736451', ifsc: 'SBIN0004521', upi: 'simran@oksbi' },
-    { id: '3', name: 'Rohan Tech (Influencer)', code: 'ROHAN50', commissionRate: 50, totalReferred: 310, totalEarned: 95400, walletBalance: 28000, bankAccount: '098172635412', ifsc: 'ICIC0000912', upi: 'rohan@icici' },
+    { id: '1', name: 'Harpreet Singh', email: 'harpreet@sacredmind.in', code: 'HARPREET40', commissionRate: 40, totalReferred: 142, totalEarned: 42850, walletBalance: 14200, bankAccount: '50100492817291', ifsc: 'HDFC0001234', upi: 'harpreet@okhdfcbank' },
+    { id: '2', name: 'Simran Kaur', email: 'simran@sacredmind.in', code: 'SIMRAN35', commissionRate: 35, totalReferred: 88, totalEarned: 22100, walletBalance: 7500, bankAccount: '309182736451', ifsc: 'SBIN0004521', upi: 'simran@oksbi' },
+    { id: '3', name: 'Rohan Tech', email: 'rohan@sacredmind.in', code: 'ROHAN50', commissionRate: 50, totalReferred: 310, totalEarned: 95400, walletBalance: 28000, bankAccount: '098172635412', ifsc: 'ICIC0000912', upi: 'rohan@icici' },
   ]);
 
   // Dynamic Live Courses
@@ -80,6 +89,7 @@ export default function SuperAdmin() {
 
   // Form States
   const [trainerName, setTrainerName] = useState('');
+  const [trainerEmail, setTrainerEmail] = useState('');
   const [trainerCode, setTrainerCode] = useState('');
   const [trainerRate, setTrainerRate] = useState(40);
 
@@ -89,6 +99,31 @@ export default function SuperAdmin() {
   const [courseVideo, setCourseVideo] = useState('');
 
   const [notification, setNotification] = useState('');
+
+  // Check persistent session on load
+  useEffect(() => {
+    const session = localStorage.getItem('sm_admin_authenticated');
+    if (session === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // Handle Admin Login
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginEmail.trim().toLowerCase() === 'info@sacredmind.in' && loginPassword.trim() === 'Birinder@8080') {
+      setIsAuthenticated(true);
+      localStorage.setItem('sm_admin_authenticated', 'true');
+      setAuthError('');
+    } else {
+      setAuthError('गलत Email या Password! कृपया सही क्रेडेंशियल दर्ज करें।');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('sm_admin_authenticated');
+  };
 
   // Live Aggregate Numbers Calculation
   const totalReferredStudents = trainers.reduce((sum, t) => sum + t.totalReferred, 0);
@@ -102,6 +137,7 @@ export default function SuperAdmin() {
     const newT: Trainer = {
       id: String(Date.now()),
       name: trainerName,
+      email: trainerEmail || `${trainerCode.toLowerCase()}@sacredmind.in`,
       code: trainerCode.toUpperCase(),
       commissionRate: Number(trainerRate),
       totalReferred: 0,
@@ -113,8 +149,9 @@ export default function SuperAdmin() {
     };
     setTrainers([newT, ...trainers]);
     setTrainerName('');
+    setTrainerEmail('');
     setTrainerCode('');
-    setNotification(`Trainer code ${newT.code} onboarded live!`);
+    setNotification(`Trainer ${newT.name} onboarded with code ${newT.code}!`);
     setTimeout(() => setNotification(''), 3000);
   };
 
@@ -133,7 +170,7 @@ export default function SuperAdmin() {
     setCourses([newC, ...courses]);
     setCourseTitle('');
     setCourseVideo('');
-    setNotification(`Course "${newC.title}" added to catalog!`);
+    setNotification(`Course "${newC.title}" published!`);
     setTimeout(() => setNotification(''), 3000);
   };
 
@@ -144,6 +181,78 @@ export default function SuperAdmin() {
     alert('Bank transfer initiated! Funds marked as PAID to Trainer account.');
   };
 
+  // 🔒 LOGIN SCREEN IF NOT AUTHENTICATED
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-slate-100 font-sans selection:bg-purple-600 selection:text-white">
+        <div className="max-w-md w-full bg-slate-900/80 border border-purple-500/30 p-8 rounded-3xl shadow-2xl backdrop-blur-xl relative space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center text-purple-400">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
+              Super Admin Gate
+            </h2>
+            <p className="text-xs text-slate-400">Sacred Mind Platform Management Console</p>
+          </div>
+
+          {authError && (
+            <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-300 text-xs flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Official Admin Email</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="info@sacredmind.in"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Admin Security Password</label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="password"
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold text-xs text-white shadow-lg shadow-purple-600/30 hover:opacity-90 transition"
+            >
+              Authorize & Access Console
+            </button>
+          </form>
+
+          <div className="pt-2 text-center">
+            <span className="text-[10px] text-slate-500 font-mono">
+              Protected by Sacred Mind Security Engine
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ AUTHENTICATED ADMIN CONSOLE
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 md:p-10 selection:bg-purple-600 selection:text-white pb-24">
       
@@ -155,7 +264,7 @@ export default function SuperAdmin() {
             <div className="flex items-center space-x-2">
               <h1 className="text-2xl font-black text-white">Sacred Mind Super Admin</h1>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                Live Engine Active
+                Authorized: info@sacredmind.in
               </span>
             </div>
             <p className="text-xs text-slate-400">Realtime Calculations, Live Onboarding & Bank Payout Clearing</p>
@@ -169,17 +278,15 @@ export default function SuperAdmin() {
             rel="noopener noreferrer"
             className="px-4 py-2 rounded-xl bg-purple-950/60 border border-purple-600/40 text-xs font-bold text-purple-300 hover:bg-purple-900/60 transition flex items-center space-x-1"
           >
-            <span>Open Trainer Portal</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Trainer Portal ↗</span>
           </a>
-          <a
-            href="https://www.sacredmind.in/courses"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white transition"
+          <button
+            onClick={handleAdminLogout}
+            className="px-3.5 py-2 rounded-xl bg-rose-950/50 border border-rose-800/40 hover:bg-rose-900/60 text-xs font-bold text-rose-300 transition flex items-center space-x-1.5"
           >
-            Live Site ↗
-          </a>
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
+          </button>
         </div>
       </div>
 
@@ -250,7 +357,7 @@ export default function SuperAdmin() {
 
             <form onSubmit={handleAddTrainer} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Trainer / Influencer Name</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Trainer Name</label>
                 <input
                   type="text"
                   required
@@ -262,7 +369,19 @@ export default function SuperAdmin() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Referral Code (Unique Coupon)</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Trainer Login Email</label>
+                <input
+                  type="email"
+                  required
+                  value={trainerEmail}
+                  onChange={(e) => setTrainerEmail(e.target.value)}
+                  placeholder="aman@example.com"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Referral Code & Login Key</label>
                 <input
                   type="text"
                   required
@@ -274,7 +393,7 @@ export default function SuperAdmin() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Lifetime Commission Percentage</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Lifetime Commission Slabs</label>
                 <select
                   value={trainerRate}
                   onChange={(e) => setTrainerRate(Number(e.target.value))}
@@ -291,7 +410,7 @@ export default function SuperAdmin() {
                 type="submit"
                 className="w-full mt-2 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition shadow-lg shadow-purple-600/20"
               >
-                Issue Commission Code & Access
+                Issue Credentials & Live Access
               </button>
             </form>
           </div>
@@ -307,7 +426,7 @@ export default function SuperAdmin() {
                         Code: {t.code}
                       </span>
                     </div>
-                    <span className="text-xs text-slate-400">Assigned Commission: <strong className="text-emerald-400">{t.commissionRate}% Lifetime</strong></span>
+                    <span className="text-xs text-slate-400">Login Email: <strong className="text-slate-200">{t.email}</strong> • Cut: <strong className="text-emerald-400">{t.commissionRate}%</strong></span>
                   </div>
 
                   <span className="text-xs text-slate-400">Total Referred: <strong className="text-white">{t.totalReferred} Students</strong></span>
