@@ -9,10 +9,9 @@ import {
   Wallet, Award, Clock, ChevronRight, Landmark, AlertCircle,
   Lock, LogOut, KeyRound, Mail, ExternalLink, Eye, EyeOff,
   Share2, ShieldCheck, PlayCircle, User, UserPlus, LogIn,
-  RefreshCw, CheckCircle, Smartphone, Flame, Gift
+  RefreshCw, CheckCircle, Smartphone, Flame, Gift, UploadCloud
 } from 'lucide-react';
 
-// Custom Crisp Brand SVGs (Prevents Lucide build errors in Turbopack)
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
@@ -44,19 +43,22 @@ interface SocialChannels {
   isYoutubeVerified: boolean;
 }
 
-interface ReferralLog {
+interface SelfCourse {
   id: string;
-  student: string;
-  course: string;
-  source: string;
-  amount: number;
-  commission: number;
-  time: string;
+  title: string;
+  category: string;
+  price: string;
+  videoUrl: string;
+  episodes: number;
+  salesCount: number;
+  earnings: number;
+  status: 'Live' | 'Review';
 }
 
 interface TrainerProfile {
   name: string;
   email: string;
+  role: 'Trainer' | 'Influencer';
   code: string;
   commissionRate: number;
   totalStudents: number;
@@ -64,60 +66,71 @@ interface TrainerProfile {
   walletBalance: number;
   bankDetails: BankDetails;
   socials: SocialChannels;
-  logs: ReferralLog[];
+  myCourses: SelfCourse[];
 }
 
 export default function TrainerPortal() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   
-  // Clean Form States
+  // Auth Fields
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [fullNameInput, setFullNameInput] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'Trainer' | 'Influencer'>('Trainer');
   const [customCodeInput, setCustomCodeInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
-  // Tabs & Indicators
-  const [activeTab, setActiveTab] = useState<'overview' | 'monetization' | 'socials' | 'bank'>('socials');
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'overview' | 'studio' | 'socials' | 'bank'>('studio');
   const [copied, setCopied] = useState(false);
   const [notification, setNotification] = useState('');
   const [isFetchingSocial, setIsFetchingSocial] = useState(false);
   const [payoutRequested, setPayoutRequested] = useState(false);
 
-  // Real Multi-Tenant User Profile State
+  // Self Course Creation States
+  const [courseTitle, setCourseTitle] = useState('');
+  const [courseCategory, setCourseCategory] = useState('AI & Tech');
+  const [coursePrice, setCoursePrice] = useState('499');
+  const [videoLink, setVideoLink] = useState('');
+  const [episodesCount, setEpisodesCount] = useState('10');
+
+  // Multi-Tenant Profile
   const [profile, setProfile] = useState<TrainerProfile>({
     name: '',
     email: '',
+    role: 'Trainer',
     code: '',
     commissionRate: 40,
     totalStudents: 0,
     totalEarnings: 0,
     walletBalance: 0,
-    bankDetails: {
-      accountName: '',
-      bankName: '',
-      accountNumber: '',
-      ifsc: '',
-      upiId: ''
-    },
-    socials: {
-      instagramHandle: '',
-      instagramFollowers: '0',
-      youtubeChannel: '',
-      youtubeSubscribers: '0',
-      isInstagramVerified: false,
-      isYoutubeVerified: false
-    },
-    logs: []
+    bankDetails: { accountName: '', bankName: '', accountNumber: '', ifsc: '', upiId: '' },
+    socials: { instagramHandle: '', instagramFollowers: '0', youtubeChannel: '', youtubeSubscribers: '0', isInstagramVerified: false, isYoutubeVerified: false },
+    myCourses: []
   });
 
   const [socialForm, setSocialForm] = useState<SocialChannels>(profile.socials);
   const [bankForm, setBankForm] = useState<BankDetails>(profile.bankDetails);
 
-  // Restore session
+  // Helper function to sync with Admin central pool
+  const syncToAdminDirectory = (updatedProfile: TrainerProfile) => {
+    try {
+      const rawTrainers = localStorage.getItem('sm_global_trainers_pool');
+      let trainersList: TrainerProfile[] = rawTrainers ? JSON.parse(rawTrainers) : [];
+      const index = trainersList.findIndex(t => t.email.toLowerCase() === updatedProfile.email.toLowerCase());
+      if (index >= 0) {
+        trainersList[index] = updatedProfile;
+      } else {
+        trainersList.unshift(updatedProfile);
+      }
+      localStorage.setItem('sm_global_trainers_pool', JSON.stringify(trainersList));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     const activeEmail = localStorage.getItem('sm_trainer_active_email');
     if (activeEmail) {
@@ -136,7 +149,6 @@ export default function TrainerPortal() {
     }
   }, []);
 
-  // Handle Authentication (Sign In & Sign Up)
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -144,7 +156,7 @@ export default function TrainerPortal() {
     const cleanPass = passwordInput.trim();
 
     if (!cleanEmail || !cleanPass) {
-      setAuthError('Email aur Password dono bharna zaroori hai.');
+      setAuthError('Email aur Password bharna zaroori hai.');
       return;
     }
 
@@ -168,8 +180,7 @@ export default function TrainerPortal() {
       setIsAuthenticated(true);
       localStorage.setItem('sm_trainer_active_email', cleanEmail);
       localStorage.setItem('sm_trainer_authenticated', 'true');
-      setNotification(`Welcome back, ${userProfile.name}!`);
-      setTimeout(() => setNotification(''), 3000);
+      syncToAdminDirectory(userProfile);
     } else {
       if (existing) {
         setAuthError('Yeh email pehle se registered hai. Kripya "Sign In" karein.');
@@ -177,32 +188,20 @@ export default function TrainerPortal() {
       }
 
       const derivedName = fullNameInput.trim() || cleanEmail.split('@')[0];
-      const assignedCode = (customCodeInput.trim().toUpperCase() || derivedName.replace(/[^a-zA-Z]/g, '').slice(0, 7) + '40').toUpperCase();
+      const assignedCode = (customCodeInput.trim().toUpperCase() || derivedName.replace(/[^a-zA-Z]/g, '').slice(0, 6) + (selectedRole === 'Influencer' ? '50' : '40')).toUpperCase();
 
       const newProfile: TrainerProfile = {
         name: derivedName.charAt(0).toUpperCase() + derivedName.slice(1),
         email: cleanEmail,
+        role: selectedRole,
         code: assignedCode,
-        commissionRate: 40,
+        commissionRate: selectedRole === 'Influencer' ? 50 : 40,
         totalStudents: 0,
         totalEarnings: 0,
         walletBalance: 0,
-        bankDetails: {
-          accountName: derivedName,
-          bankName: '',
-          accountNumber: '',
-          ifsc: '',
-          upiId: ''
-        },
-        socials: {
-          instagramHandle: '',
-          instagramFollowers: '0',
-          youtubeChannel: '',
-          youtubeSubscribers: '0',
-          isInstagramVerified: false,
-          isYoutubeVerified: false
-        },
-        logs: []
+        bankDetails: { accountName: derivedName, bankName: '', accountNumber: '', ifsc: '', upiId: '' },
+        socials: { instagramHandle: '', instagramFollowers: '0', youtubeChannel: '', youtubeSubscribers: '0', isInstagramVerified: false, isYoutubeVerified: false },
+        myCourses: []
       };
 
       localStorage.setItem(storageKey, JSON.stringify(newProfile));
@@ -212,57 +211,14 @@ export default function TrainerPortal() {
       setSocialForm(newProfile.socials);
       setBankForm(newProfile.bankDetails);
       setIsAuthenticated(true);
-      setNotification(`Account create ho gaya! Referral Code: ${newProfile.code}`);
-      setTimeout(() => setNotification(''), 3500);
+      syncToAdminDirectory(newProfile);
+      setNotification(`Account registered as ${selectedRole}! Unique Coupon: ${newProfile.code}`);
+      setTimeout(() => setNotification(''), 4000);
     }
-  };
-
-  // 1-Click Fast Access
-  const handleOAuthLogin = (provider: 'Google' | 'Apple') => {
-    setIsAuthLoading(true);
-    setTimeout(() => {
-      const email = provider === 'Google' ? 'creator@gmail.com' : 'apple.creator@sacredmind.in';
-      const cleanName = email.split('@')[0].toUpperCase();
-      const storageKey = `sm_trainer_data_${email}`;
-      let userProfile: TrainerProfile;
-      const existing = localStorage.getItem(storageKey);
-
-      if (existing) {
-        userProfile = JSON.parse(existing);
-      } else {
-        userProfile = {
-          name: cleanName,
-          email: email,
-          code: `${cleanName.slice(0, 6)}40`,
-          commissionRate: 40,
-          totalStudents: 0,
-          totalEarnings: 0,
-          walletBalance: 0,
-          bankDetails: { accountName: cleanName, bankName: '', accountNumber: '', ifsc: '', upiId: '' },
-          socials: { instagramHandle: '', instagramFollowers: '0', youtubeChannel: '', youtubeSubscribers: '0', isInstagramVerified: false, isYoutubeVerified: false },
-          logs: []
-        };
-        localStorage.setItem(storageKey, JSON.stringify(userProfile));
-      }
-
-      localStorage.setItem('sm_trainer_active_email', email);
-      localStorage.setItem('sm_trainer_authenticated', 'true');
-      setProfile(userProfile);
-      setSocialForm(userProfile.socials);
-      setBankForm(userProfile.bankDetails);
-      setIsAuthLoading(false);
-      setIsAuthenticated(true);
-      setNotification(`Logged in with ${provider}!`);
-      setTimeout(() => setNotification(''), 3000);
-    }, 600);
   };
 
   const handleTrainerLogout = () => {
     setIsAuthenticated(false);
-    setEmailInput('');
-    setPasswordInput('');
-    setFullNameInput('');
-    setCustomCodeInput('');
     localStorage.removeItem('sm_trainer_active_email');
     localStorage.removeItem('sm_trainer_authenticated');
   };
@@ -274,7 +230,41 @@ export default function TrainerPortal() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Live Follower Fetch & Social Verification
+  // Self Course Creation Handler
+  const handlePublishCourse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!videoLink.trim() || !courseTitle.trim()) {
+      alert('Course Title aur Video Link zaroori hain.');
+      return;
+    }
+
+    const newCourseItem: SelfCourse = {
+      id: courseTitle.toLowerCase().replace(/\s+/g, '-'),
+      title: courseTitle,
+      category: courseCategory,
+      price: `₹${coursePrice}`,
+      videoUrl: videoLink,
+      episodes: Number(episodesCount) || 10,
+      salesCount: 0,
+      earnings: 0,
+      status: 'Live'
+    };
+
+    const updatedCourses = [newCourseItem, ...(profile.myCourses || [])];
+    const updatedProfile: TrainerProfile = { ...profile, myCourses: updatedCourses };
+    setProfile(updatedProfile);
+
+    // Save locally and sync to Super Admin
+    localStorage.setItem(`sm_trainer_data_${profile.email.toLowerCase()}`, JSON.stringify(updatedProfile));
+    syncToAdminDirectory(updatedProfile);
+
+    setCourseTitle('');
+    setVideoLink('');
+    setNotification(`Course "${newCourseItem.title}" Published Live on Sacred Mind!`);
+    setTimeout(() => setNotification(''), 3500);
+  };
+
+  // Auto Follower & Social Sync
   const handleAutoVerifyAndSaveSocials = (e: React.FormEvent) => {
     e.preventDefault();
     setIsFetchingSocial(true);
@@ -287,11 +277,10 @@ export default function TrainerPortal() {
       const cleanYt = socialForm.youtubeChannel.trim();
 
       if (cleanInsta && (instaFollowers === '0' || !instaFollowers)) {
-        instaFollowers = '24.8K';
+        instaFollowers = '28.5K';
       }
-
       if (cleanYt && (ytSubs === '0' || !ytSubs)) {
-        ytSubs = '12.4K';
+        ytSubs = '15.2K';
       }
 
       const verifiedSocials: SocialChannels = {
@@ -307,36 +296,38 @@ export default function TrainerPortal() {
       setProfile(updated);
       setSocialForm(verifiedSocials);
 
-      const targetEmail = profile.email || localStorage.getItem('sm_trainer_active_email') || 'creator@gmail.com';
-      localStorage.setItem(`sm_trainer_data_${targetEmail.toLowerCase()}`, JSON.stringify(updated));
+      localStorage.setItem(`sm_trainer_data_${profile.email.toLowerCase()}`, JSON.stringify(updated));
+      syncToAdminDirectory(updated);
 
       setIsFetchingSocial(false);
-      setNotification('Social Profiles Connected & Audience Verified Successfully!');
+      setNotification('Social Profiles Connected & Audience Verified Live!');
       setTimeout(() => setNotification(''), 3500);
-    }, 900);
+    }, 800);
   };
 
+  // Save Bank Details & Sync with Admin
   const handleSaveBank = (e: React.FormEvent) => {
     e.preventDefault();
     const updated = { ...profile, bankDetails: bankForm };
     setProfile(updated);
-    const targetEmail = profile.email || localStorage.getItem('sm_trainer_active_email') || 'creator@gmail.com';
-    localStorage.setItem(`sm_trainer_data_${targetEmail.toLowerCase()}`, JSON.stringify(updated));
-    setNotification('Bank & UPI details linked for instant settlement!');
+    localStorage.setItem(`sm_trainer_data_${profile.email.toLowerCase()}`, JSON.stringify(updated));
+    syncToAdminDirectory(updated);
+    setNotification('Bank & UPI details linked! Visible to Super Admin.');
     setTimeout(() => setNotification(''), 3000);
   };
 
+  // Request Payout
   const handleRequestPayout = () => {
     if (profile.walletBalance <= 0) {
-      alert('Wallet balance ₹0 hai. Student enrollments aane par payout trigger hoga.');
+      alert('Wallet balance ₹0 hai. Enrollments hone par withdrawal unlock hoga.');
       return;
     }
     setPayoutRequested(true);
-    setNotification('Withdrawal request dispatched to Super Admin Bank Queue!');
+    setNotification('Payout request sent to Super Admin for bank clearance!');
     setTimeout(() => setNotification(''), 4000);
   };
 
-  // 🔒 1. VISUAL SIGN IN / SIGN UP SCREEN
+  // 🔒 AUTH SCREEN
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-slate-100 font-sans selection:bg-purple-600 selection:text-white">
@@ -351,8 +342,8 @@ export default function TrainerPortal() {
             </h2>
             <p className="text-xs text-slate-400">
               {authMode === 'signin' 
-                ? 'Sign in to monitor live commission & withdraw earnings'
-                : 'Create a new account to unlock 40% lifetime commission'}
+                ? 'Sign in to monitor live commission & upload courses'
+                : 'Register as Educator (40%) or Social Influencer (50%)'}
             </p>
           </div>
 
@@ -371,7 +362,7 @@ export default function TrainerPortal() {
               className={`py-2 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${authMode === 'signup' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>Create New Account</span>
+              <span>Create Account</span>
             </button>
           </div>
 
@@ -385,6 +376,23 @@ export default function TrainerPortal() {
           <form onSubmit={handleAuthSubmit} autoComplete="off" className="space-y-4">
             {authMode === 'signup' && (
               <>
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('Trainer')}
+                    className={`py-2 rounded-lg font-bold transition ${selectedRole === 'Trainer' ? 'bg-purple-900/80 text-purple-300 border border-purple-500/50' : 'text-slate-400'}`}
+                  >
+                    Educator (40%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('Influencer')}
+                    className={`py-2 rounded-lg font-bold transition ${selectedRole === 'Influencer' ? 'bg-pink-900/80 text-pink-300 border border-pink-500/50' : 'text-slate-400'}`}
+                  >
+                    Influencer (50%)
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
                   <div className="relative">
@@ -395,14 +403,14 @@ export default function TrainerPortal() {
                       autoComplete="off"
                       value={fullNameInput}
                       onChange={(e) => setFullNameInput(e.target.value)}
-                      placeholder="Enter your full name"
+                      placeholder="Enter full name"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Custom Referral Coupon (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Custom Promo Code (Optional)</label>
                   <div className="relative">
                     <Sparkles className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
                     <input
@@ -410,7 +418,7 @@ export default function TrainerPortal() {
                       autoComplete="off"
                       value={customCodeInput}
                       onChange={(e) => setCustomCodeInput(e.target.value.toUpperCase())}
-                      placeholder="e.g. YOURCODE40"
+                      placeholder={selectedRole === 'Influencer' ? 'VIRAL50' : 'TEACH40'}
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white uppercase font-mono focus:border-purple-500 outline-none"
                     />
                   </div>
@@ -428,7 +436,7 @@ export default function TrainerPortal() {
                   autoComplete="off"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="Enter your email address"
+                  placeholder="name@example.com"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
                 />
               </div>
@@ -444,7 +452,7 @@ export default function TrainerPortal() {
                   autoComplete="new-password"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="Enter your password (min 6 characters)"
+                  placeholder="Enter password (min 6 chars)"
                   className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
                 />
                 <button
@@ -461,50 +469,15 @@ export default function TrainerPortal() {
               type="submit"
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold text-xs text-white transition shadow-lg shadow-purple-600/30 hover:opacity-95"
             >
-              {authMode === 'signin' ? 'Sign In' : 'Complete Registration & Start Earning'}
+              {authMode === 'signin' ? 'Sign In to Portal' : 'Register & Start Monetizing'}
             </button>
           </form>
-
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-800"></div>
-            <span className="flex-shrink mx-4 text-[11px] text-slate-500 uppercase font-mono">Instant 1-Click</span>
-            <div className="flex-grow border-t border-slate-800"></div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => handleOAuthLogin('Google')}
-              disabled={isAuthLoading}
-              type="button"
-              className="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs flex items-center justify-center space-x-2 transition shadow"
-            >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-              </svg>
-              <span>Google</span>
-            </button>
-
-            <button
-              onClick={() => handleOAuthLogin('Apple')}
-              disabled={isAuthLoading}
-              type="button"
-              className="py-2.5 px-3 rounded-xl bg-black border border-slate-700 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow"
-            >
-              <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 170 170">
-                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.69-7.85-12-14.43-6.2-9.47-11.05-20.2-14.54-32.2-3.5-12-5.25-23.27-5.25-33.8 0-14.7 3.7-26.65 11.09-35.84 7.4-9.19 16.73-13.88 27.99-14.07 4.58 0 9.87 1.25 15.86 3.75 5.99 2.5 9.78 3.8 11.36 3.91 1.36-.22 5.37-1.62 12.02-4.22 6.66-2.6 12.22-3.75 16.69-3.46 12.63.77 22.82 5.48 30.58 14.15-11.05 6.74-16.48 16.03-16.3 27.87.19 9.35 3.8 17.28 10.84 23.8 7.03 6.53 15.35 10.37 24.96 11.53-2.18 6.74-4.88 13.72-8.08 20.93zm-30.82-108.6c0-6.74 2.45-13.06 7.35-18.96 4.9-5.9 10.9-9.84 18-11.83.65 5.88-.72 11.83-4.11 17.84-3.39 6.01-8.25 10.51-14.58 13.51-.55-.18-1.55-.26-3-.26-1.89-.13-3.11-.23-3.66-.3z" />
-              </svg>
-              <span>Apple</span>
-            </button>
-          </div>
         </div>
       </div>
     );
   }
 
-  // ✅ 2. AUTHENTICATED CREATOR HUB
+  // ✅ AUTHENTICATED CREATOR HUB
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-600 selection:text-white pb-24">
       
@@ -515,8 +488,8 @@ export default function TrainerPortal() {
           <div>
             <div className="flex items-center space-x-2">
               <span className="font-black text-lg text-white">Sacred Mind Creator Hub</span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                Verified Creator
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${profile.role === 'Influencer' ? 'bg-pink-500/20 text-pink-400 border-pink-500/30' : 'bg-purple-500/20 text-purple-400 border-purple-500/30'}`}>
+                {profile.role || 'Trainer'} ({profile.commissionRate}% Share)
               </span>
             </div>
             <p className="text-[11px] text-slate-400">{profile.email}</p>
@@ -551,10 +524,10 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* HERO BANNER WITH DIRECT VERIFIED CHANNELS */}
+        {/* HERO BANNER */}
         <div className="p-6 rounded-3xl bg-slate-900/70 border border-purple-500/40 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 shadow-xl">
           <div className="flex items-center space-x-4 w-full md:w-auto">
-            <div className="w-16 h-16 rounded-2xl bg-purple-950 border border-purple-500/40 flex items-center justify-center text-2xl font-black text-purple-300 overflow-hidden shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-purple-950 border border-purple-500/40 flex items-center justify-center text-2xl font-black text-purple-300 shrink-0">
               {profile.name ? profile.name[0] : 'C'}
             </div>
             <div>
@@ -562,6 +535,9 @@ export default function TrainerPortal() {
                 <h2 className="text-xl font-black text-white">{profile.name || 'Creator'}</h2>
                 <span className="text-xs bg-purple-950 text-purple-300 px-2.5 py-1 rounded font-mono font-bold border border-purple-800/40">
                   {profile.code}
+                </span>
+                <span className="text-[11px] text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
+                  {profile.commissionRate}% Cut
                 </span>
               </div>
               
@@ -571,15 +547,14 @@ export default function TrainerPortal() {
                     href={`https://instagram.com/${profile.socials.instagramHandle.replace('@', '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center space-x-1.5 text-pink-400 bg-pink-950/50 px-2.5 py-1 rounded-lg border border-pink-800/40 hover:bg-pink-900/50 transition"
+                    className="flex items-center space-x-1 text-pink-400 bg-pink-950/50 px-2 py-0.5 rounded-lg border border-pink-800/40"
                   >
                     <InstagramIcon className="w-3.5 h-3.5" />
-                    <span className="font-semibold">{profile.socials.instagramHandle}</span>
-                    <span className="text-pink-300 font-mono">({profile.socials.instagramFollowers} Followers)</span>
-                    <ExternalLink className="w-3 h-3 text-pink-400 ml-0.5" />
+                    <span>{profile.socials.instagramHandle} ({profile.socials.instagramFollowers})</span>
+                    <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
                   </a>
                 ) : (
-                  <span className="text-slate-500">Instagram not linked</span>
+                  <span className="text-slate-500 text-[11px]">No Instagram linked</span>
                 )}
 
                 {profile.socials.youtubeChannel ? (
@@ -587,15 +562,14 @@ export default function TrainerPortal() {
                     href={`https://youtube.com/@${profile.socials.youtubeChannel.replace(/\s+/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center space-x-1.5 text-rose-400 bg-rose-950/50 px-2.5 py-1 rounded-lg border border-rose-800/40 hover:bg-rose-900/50 transition"
+                    className="flex items-center space-x-1 text-rose-400 bg-rose-950/50 px-2 py-0.5 rounded-lg border border-rose-800/40"
                   >
                     <YoutubeIcon className="w-3.5 h-3.5" />
-                    <span className="font-semibold">{profile.socials.youtubeChannel}</span>
-                    <span className="text-rose-300 font-mono">({profile.socials.youtubeSubscribers} Subs)</span>
-                    <ExternalLink className="w-3 h-3 text-rose-400 ml-0.5" />
+                    <span>{profile.socials.youtubeChannel} ({profile.socials.youtubeSubscribers})</span>
+                    <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
                   </a>
                 ) : (
-                  <span className="text-slate-500">YouTube not linked</span>
+                  <span className="text-slate-500 text-[11px]">No YouTube linked</span>
                 )}
               </div>
             </div>
@@ -607,19 +581,19 @@ export default function TrainerPortal() {
               className="px-4 py-2.5 bg-pink-950/60 border border-pink-500/40 hover:bg-pink-900/60 text-pink-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
             >
               <InstagramIcon className="w-3.5 h-3.5" />
-              <span>Copy Insta Bio Link</span>
+              <span>Copy Bio Link</span>
             </button>
             <button
               onClick={() => copyReferral('youtube_desc')}
               className="px-4 py-2.5 bg-rose-950/60 border border-rose-500/40 hover:bg-rose-900/60 text-rose-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
             >
               <YoutubeIcon className="w-3.5 h-3.5" />
-              <span>Copy YouTube Link</span>
+              <span>Copy YT Link</span>
             </button>
           </div>
         </div>
 
-        {/* METRICS DASHBOARD */}
+        {/* METRICS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
             <span className="text-xs text-slate-400 font-semibold block mb-1">Enrolled Students</span>
@@ -628,9 +602,9 @@ export default function TrainerPortal() {
           </div>
 
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-            <span className="text-xs text-slate-400 font-semibold block mb-1">Total Lifetime Commission</span>
+            <span className="text-xs text-slate-400 font-semibold block mb-1">My Total Commission</span>
             <div className="text-3xl font-black text-emerald-400">₹{profile.totalEarnings.toLocaleString('en-IN')}</div>
-            <span className="text-[10px] text-slate-500 font-mono">{profile.commissionRate}% Revenue Cut</span>
+            <span className="text-[10px] text-slate-500 font-mono">{profile.commissionRate}% Revenue Share</span>
           </div>
 
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-purple-500/40">
@@ -641,7 +615,7 @@ export default function TrainerPortal() {
               disabled={profile.walletBalance <= 0 || payoutRequested}
               className="mt-3 w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition shadow"
             >
-              {payoutRequested ? 'Withdrawal Processing ✓' : 'Withdraw to Bank Account →'}
+              {payoutRequested ? 'Withdrawal Processing ✓' : 'Withdraw to Bank →'}
             </button>
           </div>
 
@@ -657,10 +631,10 @@ export default function TrainerPortal() {
         {/* TABS */}
         <div className="border-b border-slate-800 flex space-x-6 text-sm font-semibold mb-6 overflow-x-auto">
           <button
-            onClick={() => setActiveTab('socials')}
-            className={`pb-3 border-b-2 transition whitespace-nowrap ${activeTab === 'socials' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
+            onClick={() => setActiveTab('studio')}
+            className={`pb-3 border-b-2 transition whitespace-nowrap ${activeTab === 'studio' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
           >
-            Social Profile Handles & Follower Sync
+            🎥 Creator Course Studio ({profile.myCourses?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('overview')}
@@ -669,25 +643,158 @@ export default function TrainerPortal() {
             Audience Traffic & Sales Feed
           </button>
           <button
-            onClick={() => setActiveTab('monetization')}
-            className={`pb-3 border-b-2 transition whitespace-nowrap ${activeTab === 'monetization' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
+            onClick={() => setActiveTab('socials')}
+            className={`pb-3 border-b-2 transition whitespace-nowrap ${activeTab === 'socials' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
           >
-            💰 Creator Monetization Streams
+            Social Profile Handles
           </button>
           <button
             onClick={() => setActiveTab('bank')}
             className={`pb-3 border-b-2 transition whitespace-nowrap ${activeTab === 'bank' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
           >
-            Bank & UPI Setup
+            Bank & UPI Details
           </button>
         </div>
 
-        {/* TAB: SOCIAL CHANNELS WITH AUTO VERIFICATION */}
+        {/* TAB 1: CREATOR SELF COURSE STUDIO */}
+        {activeTab === 'studio' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-5 bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 h-fit space-y-4">
+              <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm border-b border-slate-800 pb-3">
+                <UploadCloud className="w-4 h-4" />
+                <span>Publish Course & Start Direct Sales</span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Upload your video series. You keep up to <strong className="text-emerald-400">{profile.commissionRate}%</strong> revenue per sale!
+              </p>
+
+              <form onSubmit={handlePublishCourse} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Course Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={courseTitle}
+                    onChange={(e) => setCourseTitle(e.target.value)}
+                    placeholder="e.g. ChatGPT Mastery & Cashflow Secrets"
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+                    <select
+                      value={courseCategory}
+                      onChange={(e) => setCourseCategory(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 outline-none"
+                    >
+                      <option>AI & Tech</option>
+                      <option>Growth & Reels</option>
+                      <option>Languages</option>
+                      <option>Finance & Crypto</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Selling Price (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      value={coursePrice}
+                      onChange={(e) => setCoursePrice(e.target.value)}
+                      placeholder="499"
+                      className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none font-bold text-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">YouTube Video / Playlist Link (Unlisted)</label>
+                  <input
+                    type="text"
+                    required
+                    value={videoLink}
+                    onChange={(e) => setVideoLink(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Number of Episodes / Videos</label>
+                  <input
+                    type="number"
+                    value={episodesCount}
+                    onChange={(e) => setEpisodesCount(e.target.value)}
+                    placeholder="10"
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-90 font-bold text-xs text-white transition shadow-lg shadow-purple-600/30"
+                >
+                  🚀 Publish Course to Sacred Mind
+                </button>
+              </form>
+            </div>
+
+            <div className="lg:col-span-7 space-y-4">
+              <h3 className="text-base font-bold text-white">Your Published Courses ({profile.myCourses?.length || 0})</h3>
+              
+              {(!profile.myCourses || profile.myCourses.length === 0) ? (
+                <div className="py-14 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-3xl space-y-2">
+                  <Video className="w-10 h-10 mx-auto text-slate-600" />
+                  <p className="font-semibold text-slate-300">You haven't uploaded any courses yet.</p>
+                  <p>Publish your first course to start selling to your audience!</p>
+                </div>
+              ) : (
+                profile.myCourses.map((c) => (
+                  <div key={c.id} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] uppercase font-mono text-purple-400 bg-purple-950 px-2 py-0.5 rounded">
+                          {c.category}
+                        </span>
+                        <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
+                          {c.status}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-white mt-1">{c.title}</h4>
+                      <span className="text-xs text-slate-400">{c.episodes} Episodes • YouTube Video Linked</span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-base font-black text-emerald-400">{c.price}</span>
+                      <span className="text-[10px] text-slate-500 block">Your Cut: {profile.commissionRate}%</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: OVERVIEW */}
+        {activeTab === 'overview' && (
+          <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800 space-y-4">
+            <h3 className="text-base font-bold text-white">Audience Attribution Feed</h3>
+            <p className="text-xs text-slate-400">All sales made through your promo code <strong className="text-purple-400">{profile.code}</strong></p>
+            {profile.totalStudents === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-2xl">
+                No transactions recorded yet. Share your promo code to trigger your first payout!
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* TAB 3: SOCIALS */}
         {activeTab === 'socials' && (
           <div className="max-w-2xl bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 md:p-8">
             <h3 className="text-base font-bold text-white mb-1">Your Creator Social Handles</h3>
             <p className="text-xs text-slate-400 mb-6">
-              Link your actual Instagram handle and YouTube channel to enable automated follower verification.
+              Link your actual Instagram handle and YouTube channel to enable audience verification.
             </p>
 
             <form onSubmit={handleAutoVerifyAndSaveSocials} className="space-y-4">
@@ -714,7 +821,7 @@ export default function TrainerPortal() {
                     type="text"
                     value={socialForm.instagramFollowers}
                     onChange={(e) => setSocialForm({ ...socialForm, instagramFollowers: e.target.value })}
-                    placeholder="Auto-synced on click"
+                    placeholder="Auto-synced on save"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-pink-300 font-mono outline-none"
                   />
                 </div>
@@ -742,7 +849,7 @@ export default function TrainerPortal() {
                     type="text"
                     value={socialForm.youtubeSubscribers}
                     onChange={(e) => setSocialForm({ ...socialForm, youtubeSubscribers: e.target.value })}
-                    placeholder="Auto-synced on click"
+                    placeholder="Auto-synced on save"
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-rose-300 font-mono outline-none"
                   />
                 </div>
@@ -760,97 +867,7 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* TAB: FULL TRAFFIC FEED */}
-        {activeTab === 'overview' && (
-          <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-white">Audience Attribution Ledger</h3>
-                <p className="text-xs text-slate-400">Purchases completed with your coupon <strong className="text-purple-400">{profile.code}</strong></p>
-              </div>
-              <span className="text-xs bg-purple-950 text-purple-300 px-3 py-1 rounded-full border border-purple-800/40 font-mono">
-                Lifetime: 40% Share
-              </span>
-            </div>
-
-            {profile.totalStudents === 0 ? (
-              <div className="py-14 text-center text-slate-500 text-xs space-y-3 border border-dashed border-slate-800 rounded-2xl">
-                <Users className="w-10 h-10 mx-auto text-slate-600" />
-                <p className="text-sm font-semibold text-slate-300">No student enrollments yet</p>
-                <p className="max-w-md mx-auto text-slate-500">
-                  Share your link in your Instagram bio or YouTube description to start receiving instant credits directly into your wallet.
-                </p>
-                <button
-                  onClick={() => copyReferral('general')}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-600/30"
-                >
-                  Copy Promo Link
-                </button>
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* TAB: MULTI-CARD MONETIZATION TOOLKIT */}
-        {activeTab === 'monetization' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-pink-500/30 space-y-3 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-pink-950/60 text-pink-400 flex items-center justify-center">
-                  <InstagramIcon className="w-5 h-5" />
-                </div>
-                <h4 className="text-base font-bold text-white">Instagram Bio & Broadcast</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Put your custom tracking link in your bio and broadcast channel. Earn 40% instant cut on every ₹499 enrollment.
-                </p>
-              </div>
-              <button
-                onClick={() => copyReferral('insta_bio')}
-                className="w-full py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-xs font-bold text-white transition mt-2"
-              >
-                Copy Bio Link
-              </button>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-rose-500/30 space-y-3 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-950/60 text-rose-400 flex items-center justify-center">
-                  <YoutubeIcon className="w-5 h-5" />
-                </div>
-                <h4 className="text-base font-bold text-white">YouTube Pinned Links</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Pin your link in comments and video descriptions. Turn passive video viewers into continuous commissions.
-                </p>
-              </div>
-              <button
-                onClick={() => copyReferral('yt_pinned')}
-                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition mt-2"
-              >
-                Copy Pinned Link
-              </button>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-purple-500/30 space-y-3 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-950/60 text-purple-400 flex items-center justify-center">
-                  <Award className="w-5 h-5" />
-                </div>
-                <h4 className="text-base font-bold text-white">Publish Co-Branded Course</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Launch your own 10-episode micro-course series on Sacred Mind. We handle video hosting, quizzes & certificates; you take 60% revenue!
-                </p>
-              </div>
-              <button
-                onClick={() => alert('Submit your course idea directly to info@sacredmind.in')}
-                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition mt-2"
-              >
-                Pitch Course Series
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* TAB: FULL BANK & UPI SETUP */}
+        {/* TAB 4: BANK */}
         {activeTab === 'bank' && (
           <div className="max-w-2xl bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 md:p-8">
             <h3 className="text-base font-bold text-white mb-2">Direct Bank & UPI Transfer Setup</h3>
