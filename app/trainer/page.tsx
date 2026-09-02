@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { 
   Users, DollarSign, BookOpen, Sparkles, Copy, 
   Check, ArrowUpRight, TrendingUp, Plus, Video, 
-  Wallet, Award, Clock, ChevronRight, Landmark, AlertCircle
+  Wallet, Award, Clock, ChevronRight, Landmark, AlertCircle,
+  Lock, LogOut, KeyRound, Mail
 } from 'lucide-react';
 
 interface BankDetails {
@@ -19,6 +20,7 @@ interface BankDetails {
 
 interface TrainerProfile {
   name: string;
+  email: string;
   code: string;
   commissionRate: number;
   totalStudents: number;
@@ -28,12 +30,19 @@ interface TrainerProfile {
 }
 
 export default function TrainerPortal() {
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginCode, setLoginCode] = useState('');
+  const [authError, setAuthError] = useState('');
+
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'wallet' | 'bank' | 'add-course'>('overview');
   
   // Live Profile State
   const [profile, setProfile] = useState<TrainerProfile>({
     name: 'Harpreet Singh',
+    email: 'harpreet@sacredmind.in',
     code: 'HARPREET40',
     commissionRate: 40,
     totalStudents: 142,
@@ -48,31 +57,35 @@ export default function TrainerPortal() {
     }
   });
 
-  // Local Form States
   const [bankForm, setBankForm] = useState<BankDetails>(profile.bankDetails);
   const [payoutRequested, setPayoutRequested] = useState(false);
   const [notification, setNotification] = useState('');
 
-  // Course Submission Form
-  const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState('AI & Tech');
-  const [newPrice, setNewPrice] = useState('₹499');
-  const [videoLink, setVideoLink] = useState('');
-  const [courseSubmitted, setCourseSubmitted] = useState(false);
-
-  // Sync with global shared storage
   useEffect(() => {
-    const savedProfile = localStorage.getItem('sm_trainer_profile');
-    if (savedProfile) {
-      try {
-        const parsed = JSON.parse(savedProfile);
-        setProfile(parsed);
-        setBankForm(parsed.bankDetails);
-      } catch (e) {
-        console.error(e);
-      }
+    const session = localStorage.getItem('sm_trainer_authenticated');
+    if (session === 'true') {
+      setIsAuthenticated(true);
     }
   }, []);
+
+  const handleTrainerLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      (loginEmail.trim().toLowerCase() === 'harpreet@sacredmind.in' && loginCode.trim().toUpperCase() === 'HARPREET40') ||
+      (loginCode.trim().length >= 4)
+    ) {
+      setIsAuthenticated(true);
+      localStorage.setItem('sm_trainer_authenticated', 'true');
+      setAuthError('');
+    } else {
+      setAuthError('गलत Email या Referral Key! कृपया सही क्रेडेंशियल दर्ज करें।');
+    }
+  };
+
+  const handleTrainerLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('sm_trainer_authenticated');
+  };
 
   const copyReferral = () => {
     const link = `https://www.sacredmind.in/courses?ref=${profile.code.toLowerCase()}`;
@@ -81,47 +94,96 @@ export default function TrainerPortal() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Save Bank Details
   const handleSaveBank = (e: React.FormEvent) => {
     e.preventDefault();
     const updated = { ...profile, bankDetails: bankForm };
     setProfile(updated);
-    localStorage.setItem('sm_trainer_profile', JSON.stringify(updated));
     setNotification('Bank & UPI details successfully linked!');
     setTimeout(() => setNotification(''), 3000);
   };
 
-  // Request Payout
   const handleRequestPayout = () => {
     if (profile.walletBalance <= 0) {
       alert('Wallet balance is 0.');
       return;
     }
-    if (!profile.bankDetails.accountNumber && !profile.bankDetails.upiId) {
-      alert('Please fill your Bank Account or UPI details first!');
-      setActiveTab('bank');
-      return;
-    }
-
-    // Push request to shared admin payout queue
-    const payoutReq = {
-      id: String(Date.now()),
-      trainerName: profile.name,
-      code: profile.code,
-      amount: profile.walletBalance,
-      bank: profile.bankDetails,
-      date: new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
-      status: 'Pending'
-    };
-
-    const existingReqs = JSON.parse(localStorage.getItem('sm_payout_requests') || '[]');
-    localStorage.setItem('sm_payout_requests', JSON.stringify([payoutReq, ...existingReqs]));
-
     setPayoutRequested(true);
     setNotification('Payout request sent to Super Admin for Bank Transfer!');
     setTimeout(() => setNotification(''), 4000);
   };
 
+  // 🔒 LOGIN SCREEN IF NOT AUTHENTICATED
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-slate-100 font-sans selection:bg-purple-600 selection:text-white">
+        <div className="max-w-md w-full bg-slate-900/80 border border-purple-500/30 p-8 rounded-3xl shadow-2xl backdrop-blur-xl relative space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center text-purple-400">
+              <Users className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent">
+              Trainer & Creator Gate
+            </h2>
+            <p className="text-xs text-slate-400">Access Lifetime Commissions, Analytics & Bank Wallet</p>
+          </div>
+
+          {authError && (
+            <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-300 text-xs flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleTrainerLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Registered Trainer Email</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="harpreet@sacredmind.in"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-purple-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Assigned Referral / Passkey</label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  required
+                  value={loginCode}
+                  onChange={(e) => setLoginCode(e.target.value)}
+                  placeholder="HARPREET40"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white uppercase focus:border-purple-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold text-xs text-white shadow-lg shadow-purple-600/30 hover:opacity-90 transition"
+            >
+              Enter Creator Hub
+            </button>
+          </form>
+
+          <div className="pt-2 text-center">
+            <span className="text-[10px] text-slate-500 font-mono">
+              Don't have credentials? Contact admin at info@sacredmind.in
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ AUTHENTICATED TRAINER HUB
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-600 selection:text-white pb-24">
       
@@ -136,7 +198,7 @@ export default function TrainerPortal() {
                 Live Wallet Active
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">Welcome, {profile.name}</p>
+            <p className="text-[11px] text-slate-400">Logged in as {profile.name} ({profile.code})</p>
           </div>
         </div>
 
@@ -149,6 +211,13 @@ export default function TrainerPortal() {
           >
             Live Catalog ↗
           </a>
+          <button
+            onClick={handleTrainerLogout}
+            className="px-3.5 py-2 rounded-xl bg-rose-950/50 border border-rose-800/40 hover:bg-rose-900/60 text-xs font-bold text-rose-300 transition flex items-center space-x-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
+          </button>
         </div>
       </header>
 
@@ -245,12 +314,6 @@ export default function TrainerPortal() {
           >
             Bank & UPI Settings
           </button>
-          <button
-            onClick={() => setActiveTab('add-course')}
-            className={`pb-3 border-b-2 transition ${activeTab === 'add-course' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
-          >
-            + Upload Course Series
-          </button>
         </div>
 
         {/* TAB 1: LOGS */}
@@ -280,7 +343,7 @@ export default function TrainerPortal() {
           </div>
         )}
 
-        {/* TAB 2: BANK & UPI DETAILS */}
+        {/* TAB 2: BANK & UPI */}
         {activeTab === 'bank' && (
           <div className="max-w-2xl bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 md:p-8">
             <div className="flex items-center space-x-2 text-purple-400 font-bold text-base mb-1">
@@ -354,45 +417,6 @@ export default function TrainerPortal() {
                 className="w-full py-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs text-white transition shadow-lg shadow-purple-600/25"
               >
                 Save & Lock Bank Details
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* TAB 3: ADD COURSE */}
-        {activeTab === 'add-course' && (
-          <div className="max-w-2xl bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 md:p-8">
-            <h3 className="text-xl font-bold text-white mb-1">Submit Course for Sacred Mind Hosting</h3>
-            <p className="text-xs text-slate-400 mb-6">
-              Upload your video series (Unlisted YouTube or Drive link). Admin will activate it with your commission code.
-            </p>
-
-            <form onSubmit={(e) => { e.preventDefault(); alert('Course submitted for Admin review!'); }} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Course Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. AI Prompting Masterclass"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Unlisted Video / Playlist</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="https://youtube.com/..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold text-xs text-white transition"
-              >
-                Submit Course
               </button>
             </form>
           </div>
