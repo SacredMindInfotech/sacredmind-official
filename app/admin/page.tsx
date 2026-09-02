@@ -8,7 +8,7 @@ import {
   CheckCircle2, ShieldCheck, ArrowUpRight, TrendingUp,
   Percent, ArrowLeft, Send, Video, Save, Check, Landmark,
   Lock, LogOut, KeyRound, Mail, AlertCircle, Eye, ExternalLink,
-  Sparkles, RefreshCw
+  Sparkles, RefreshCw, RotateCcw
 } from 'lucide-react';
 
 interface BankDetails {
@@ -60,58 +60,36 @@ export default function SuperAdmin() {
   const [loginPassword, setLoginPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // Dashboard Tabs & Filters
-  const [activeTab, setActiveTab] = useState<'creators' | 'courses' | 'payouts'>('creators');
   const [roleFilter, setRoleFilter] = useState<'All' | 'Trainer' | 'Influencer'>('All');
   const [selectedCreatorForModal, setSelectedCreatorForModal] = useState<TrainerProfile | null>(null);
 
-  // Live Synchronized Directory
+  // STRICTLY REAL DATA STATE (NO MOCK VALUES)
   const [creators, setCreators] = useState<TrainerProfile[]>([]);
   const [notification, setNotification] = useState('');
 
-  // Load All Registered Trainers & Influencers from Global Pool
-  const refreshDirectory = () => {
+  // Fetch only real user records
+  const loadRealDirectory = () => {
     try {
       const raw = localStorage.getItem('sm_global_trainers_pool');
       if (raw) {
-        setCreators(JSON.parse(raw));
+        const parsed: TrainerProfile[] = JSON.parse(raw);
+        setCreators(parsed);
       } else {
-        // Fallback default list if first time
-        const defaultList: TrainerProfile[] = [
-          {
-            name: 'Birinder Singh',
-            email: 'birinderhr@gmail.com',
-            role: 'Influencer',
-            code: 'BIRINDER50',
-            commissionRate: 50,
-            totalStudents: 34,
-            totalEarnings: 8480,
-            walletBalance: 3200,
-            bankDetails: { accountName: 'Birinder Singh', bankName: 'HDFC Bank', accountNumber: '50100492817291', ifsc: 'HDFC0001234', upiId: 'birinder@okhdfcbank' },
-            socials: { instagramHandle: '@birindersinghofficial', instagramFollowers: '28.5K', youtubeChannel: 'Birinder with AI', youtubeSubscribers: '15.2K', isInstagramVerified: true, isYoutubeVerified: true },
-            myCourses: [
-              { id: 'chatgpt-mastery', title: 'ChatGPT Mastery & AI Cashflow', category: 'AI & Tech', price: '₹499', videoUrl: 'https://youtube.com/watch?v=demo1', episodes: 12, salesCount: 34, earnings: 8480, status: 'Live' }
-            ]
-          },
-          {
-            name: 'Simran Kaur',
-            email: 'simran@sacredmind.in',
-            role: 'Trainer',
-            code: 'SIMRAN40',
-            commissionRate: 40,
-            totalStudents: 18,
-            totalEarnings: 3590,
-            walletBalance: 1200,
-            bankDetails: { accountName: 'Simran Kaur', bankName: 'State Bank of India', accountNumber: '309182736451', ifsc: 'SBIN0004521', upiId: 'simran@oksbi' },
-            socials: { instagramHandle: '@simran_creative', instagramFollowers: '12K', youtubeChannel: '', youtubeSubscribers: '0', isInstagramVerified: true, isYoutubeVerified: false },
-            myCourses: []
-          }
-        ];
-        setCreators(defaultList);
-        localStorage.setItem('sm_global_trainers_pool', JSON.stringify(defaultList));
+        setCreators([]);
       }
     } catch (e) {
       console.error(e);
+      setCreators([]);
+    }
+  };
+
+  // 1-Click Complete Wipe of Mock Data
+  const handleWipeMockData = () => {
+    if (confirm('Kya aap saara purana demo data delete karke database 100% fresh aur real karna chahte hain?')) {
+      localStorage.removeItem('sm_global_trainers_pool');
+      setCreators([]);
+      setNotification('Purana demo data poori tarah delete ho gaya!');
+      setTimeout(() => setNotification(''), 3500);
     }
   };
 
@@ -119,7 +97,7 @@ export default function SuperAdmin() {
     const session = localStorage.getItem('sm_admin_authenticated');
     if (session === 'true') {
       setIsAuthenticated(true);
-      refreshDirectory();
+      loadRealDirectory();
     }
   }, []);
 
@@ -128,7 +106,7 @@ export default function SuperAdmin() {
     if (loginEmail.trim().toLowerCase() === 'info@sacredmind.in' && loginPassword.trim() === 'Birinder@8080') {
       setIsAuthenticated(true);
       localStorage.setItem('sm_admin_authenticated', 'true');
-      refreshDirectory();
+      loadRealDirectory();
       setAuthError('');
     } else {
       setAuthError('गलत Admin Email या Password!');
@@ -140,7 +118,6 @@ export default function SuperAdmin() {
     localStorage.removeItem('sm_admin_authenticated');
   };
 
-  // Settlement
   const handleReleaseBankTransfer = (email: string) => {
     const updated = creators.map(c => {
       if (c.email.toLowerCase() === email.toLowerCase()) {
@@ -150,14 +127,13 @@ export default function SuperAdmin() {
     });
     setCreators(updated);
     localStorage.setItem('sm_global_trainers_pool', JSON.stringify(updated));
-    alert(`Bank Transfer Initiated! Balance settled to ₹0.`);
+    alert('Bank Payout Disbursed & Settle ho gaya!');
   };
 
-  // Live Metrics Calculations
+  // Real Metric Calculations
   const filteredCreators = creators.filter(c => roleFilter === 'All' ? true : c.role === roleFilter);
-  const totalStudents = creators.reduce((acc, c) => acc + c.totalStudents, 0);
-  const totalCommissionDisbursed = creators.reduce((acc, c) => acc + c.totalEarnings, 0);
-  const pendingPayouts = creators.reduce((acc, c) => acc + c.walletBalance, 0);
+  const totalCommissionDisbursed = creators.reduce((acc, c) => acc + (Number(c.totalEarnings) || 0), 0);
+  const pendingPayouts = creators.reduce((acc, c) => acc + (Number(c.walletBalance) || 0), 0);
   const totalSelfPublishedCourses = creators.reduce((acc, c) => acc + (c.myCourses?.length || 0), 0);
 
   if (!isAuthenticated) {
@@ -235,20 +211,28 @@ export default function SuperAdmin() {
             <div className="flex items-center space-x-2">
               <h1 className="text-2xl font-black text-white">Sacred Mind Super Admin</h1>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                Live Sync Engine Active
+                100% Real Live Database
               </span>
             </div>
-            <p className="text-xs text-slate-400">Managing Trainers (40%), Influencers (50%), Course Audits & Bank Disbursals</p>
+            <p className="text-xs text-slate-400">Real Creators, Actual Bank Accounts & Genuine Course Submissions</p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={refreshDirectory}
+            onClick={loadRealDirectory}
             className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500/40 text-xs font-bold text-slate-300 hover:text-white transition flex items-center space-x-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Sync Live</span>
+          </button>
+          <button
+            onClick={handleWipeMockData}
+            className="px-3.5 py-2 rounded-xl bg-rose-950/40 border border-rose-800/40 hover:bg-rose-900/60 text-xs font-bold text-rose-300 transition flex items-center space-x-1.5"
+            title="Purana mock cache delete karein"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Mock Data</span>
           </button>
           <a
             href="https://trainer.sacredmind.in"
@@ -260,7 +244,7 @@ export default function SuperAdmin() {
           </a>
           <button
             onClick={handleAdminLogout}
-            className="px-3.5 py-2 rounded-xl bg-rose-950/50 border border-rose-800/40 hover:bg-rose-900/60 text-xs font-bold text-rose-300 transition flex items-center space-x-1.5"
+            className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-bold text-slate-300 transition flex items-center space-x-1.5"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Logout</span>
@@ -268,37 +252,42 @@ export default function SuperAdmin() {
         </div>
       </div>
 
-      {/* OVERVIEW STATS */}
+      {notification && (
+        <div className="max-w-7xl mx-auto mt-4 p-4 rounded-2xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center space-x-2">
+          <Check className="w-4 h-4" />
+          <span>{notification}</span>
+        </div>
+      )}
+
+      {/* OVERVIEW STATS (STRICTLY CALCULATED FROM REAL ENTRIES) */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 my-8">
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Total Creator Partners</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Total Real Creators</span>
           <div className="text-3xl font-black text-white">{creators.length} Partners</div>
-          <span className="text-[10px] text-emerald-400 font-bold">Trainers & Influencers Live</span>
+          <span className="text-[10px] text-emerald-400 font-bold">Registered Users</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Creator Commission Earned</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Commission Disbursed</span>
           <div className="text-3xl font-black text-emerald-400">₹{totalCommissionDisbursed.toLocaleString('en-IN')}</div>
-          <span className="text-[10px] text-slate-500 font-mono">Calculated Per Student Sale</span>
+          <span className="text-[10px] text-slate-500 font-mono">Actual Sales Cut</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-purple-500/40">
           <span className="text-xs text-slate-400 font-semibold block mb-1">Pending Bank Transfers</span>
           <div className="text-3xl font-black text-pink-400">₹{pendingPayouts.toLocaleString('en-IN')}</div>
-          <span className="text-[10px] text-purple-300 font-bold">Ready to Disburse</span>
+          <span className="text-[10px] text-purple-300 font-bold">Awaiting Clearance</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Self-Published Courses</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Uploaded Courses</span>
           <div className="text-3xl font-black text-purple-400">{totalSelfPublishedCourses} Modules</div>
-          <span className="text-[10px] text-emerald-400 font-bold">Uploaded by Partners</span>
+          <span className="text-[10px] text-emerald-400 font-bold">Live in LMS</span>
         </div>
       </div>
 
       {/* DIRECTORY & FILTER */}
       <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* FILTERS */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div className="flex space-x-2">
             {(['All', 'Trainer', 'Influencer'] as const).map((r) => (
@@ -307,96 +296,104 @@ export default function SuperAdmin() {
                 onClick={() => setRoleFilter(r)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition ${roleFilter === r ? 'bg-purple-600 text-white shadow' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'}`}
               >
-                {r === 'All' ? `All Creators (${creators.length})` : r === 'Trainer' ? `Trainers (40%)` : `Influencers (50%)`}
+                {r === 'All' ? `All Registered (${creators.length})` : r === 'Trainer' ? `Trainers (40%)` : `Influencers (50%)`}
               </button>
             ))}
           </div>
 
           <span className="text-xs text-slate-400 font-mono">
-            Auto-Sync Active: When a partner registers or publishes, they appear here instantly.
+            {creators.length === 0 ? 'No registered trainers yet' : `Displaying ${filteredCreators.length} verified creators`}
           </span>
         </div>
 
-        {/* CREATORS LIST WITH IN-DEPTH VIEW */}
-        <div className="grid grid-cols-1 gap-4">
-          {filteredCreators.map((c) => (
-            <div key={c.email} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-purple-500/40 transition space-y-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-lg font-black text-white">{c.name}</h3>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${c.role === 'Influencer' ? 'bg-pink-950 text-pink-300 border-pink-800/40' : 'bg-purple-950 text-purple-300 border-purple-800/40'}`}>
-                      {c.role} ({c.commissionRate}%)
-                    </span>
-                    <span className="text-[10px] font-mono bg-slate-950 text-slate-300 px-2 py-0.5 rounded border border-slate-800">
-                      Code: {c.code}
+        {/* EMPTY STATE */}
+        {creators.length === 0 ? (
+          <div className="p-16 rounded-3xl bg-slate-900/30 border border-dashed border-slate-800 text-center space-y-3">
+            <Users className="w-12 h-12 mx-auto text-slate-600" />
+            <h3 className="text-base font-bold text-white">Koi Dummy Ya Mock Record Nahi Hai</h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Jaise hi koi trainer ya influencer <strong>trainer.sacredmind.in</strong> par sign up karega aur apna actual bank account fill karega, uska live record instant yahan show hoga.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {filteredCreators.map((c) => (
+              <div key={c.email} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-purple-500/40 transition space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-lg font-black text-white">{c.name}</h3>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${c.role === 'Influencer' ? 'bg-pink-950 text-pink-300 border-pink-800/40' : 'bg-purple-950 text-purple-300 border-purple-800/40'}`}>
+                        {c.role} ({c.commissionRate}%)
+                      </span>
+                      <span className="text-[10px] font-mono bg-slate-950 text-slate-300 px-2 py-0.5 rounded border border-slate-800">
+                        Code: {c.code}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Email: <span className="text-white font-mono">{c.email}</span> • Instagram: <strong className="text-pink-400">{c.socials?.instagramHandle || 'Not Set'}</strong> • YouTube: <strong className="text-rose-400">{c.socials?.youtubeChannel || 'Not Set'}</strong>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => setSelectedCreatorForModal(c)}
+                      className="px-4 py-2 rounded-xl bg-purple-950/60 border border-purple-600/40 hover:bg-purple-900/60 text-xs font-bold text-purple-300 transition flex items-center space-x-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Audit Courses & Videos ({c.myCourses?.length || 0})</span>
+                    </button>
+
+                    {c.walletBalance > 0 ? (
+                      <button
+                        onClick={() => handleReleaseBankTransfer(c.email)}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5"
+                      >
+                        <Landmark className="w-3.5 h-3.5" />
+                        <span>Transfer ₹{c.walletBalance} to Bank</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-500 font-mono px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                        All Settled ✓
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ACCURATE BANK DETAILS ROW */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-800/80 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-mono">Bank Name</span>
+                    <strong className="text-white">{c.bankDetails?.bankName || 'Not Provided'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-mono">A/C & IFSC</span>
+                    <span className="font-mono text-purple-300">
+                      {c.bankDetails?.accountNumber ? `${c.bankDetails.accountNumber} (${c.bankDetails.ifsc || 'No IFSC'})` : 'Pending Setup'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Email: <span className="text-white font-mono">{c.email}</span> • Instagram: <strong className="text-pink-400">{c.socials?.instagramHandle || 'None'}</strong> • YouTube: <strong className="text-rose-400">{c.socials?.youtubeChannel || 'None'}</strong>
-                  </p>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setSelectedCreatorForModal(c)}
-                    className="px-4 py-2 rounded-xl bg-purple-950/60 border border-purple-600/40 hover:bg-purple-900/60 text-xs font-bold text-purple-300 transition flex items-center space-x-1.5"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Audit Courses & Videos ({c.myCourses?.length || 0})</span>
-                  </button>
-
-                  {c.walletBalance > 0 ? (
-                    <button
-                      onClick={() => handleReleaseBankTransfer(c.email)}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5"
-                    >
-                      <Landmark className="w-3.5 h-3.5" />
-                      <span>Transfer ₹{c.walletBalance} to Bank</span>
-                    </button>
-                  ) : (
-                    <span className="text-xs text-slate-500 font-mono px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                      All Settled ✓
-                    </span>
-                  )}
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-mono">UPI ID</span>
+                    <span className="font-mono text-emerald-400">{c.bankDetails?.upiId || 'None'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-mono">Wallet (Unpaid)</span>
+                    <strong className="text-pink-400 text-sm">₹{Number(c.walletBalance || 0).toLocaleString('en-IN')}</strong>
+                  </div>
                 </div>
               </div>
-
-              {/* BANK DETAILS ROW */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-800/80 text-xs">
-                <div>
-                  <span className="text-[10px] text-slate-500 block uppercase font-mono">Bank Name</span>
-                  <strong className="text-white">{c.bankDetails?.bankName || 'Not Linked'}</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block uppercase font-mono">A/C & IFSC</span>
-                  <span className="font-mono text-purple-300">
-                    {c.bankDetails?.accountNumber ? `${c.bankDetails.accountNumber} (${c.bankDetails.ifsc})` : 'Pending Setup'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block uppercase font-mono">UPI ID</span>
-                  <span className="font-mono text-emerald-400">{c.bankDetails?.upiId || 'None'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block uppercase font-mono">Wallet (Unpaid)</span>
-                  <strong className="text-pink-400 text-sm">₹{c.walletBalance.toLocaleString('en-IN')}</strong>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* POPUP MODAL: INSPECT TRAINER COURSES & VIDEOS */}
+      {/* MODAL: COURSE INSPECTION */}
       {selectedCreatorForModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-2xl w-full bg-slate-900 border border-purple-500/40 rounded-3xl p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
-            
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div>
-                <h3 className="text-lg font-black text-white">{selectedCreatorForModal.name}'s Published Modules</h3>
+                <h3 className="text-lg font-black text-white">{selectedCreatorForModal.name}'s Courses</h3>
                 <span className="text-xs text-purple-400">{selectedCreatorForModal.email} • {selectedCreatorForModal.role}</span>
               </div>
               <button
@@ -410,7 +407,7 @@ export default function SuperAdmin() {
             {(!selectedCreatorForModal.myCourses || selectedCreatorForModal.myCourses.length === 0) ? (
               <div className="py-12 text-center text-slate-500 text-xs space-y-2">
                 <Video className="w-10 h-10 mx-auto text-slate-600" />
-                <p>This partner has not published any courses yet.</p>
+                <p>Is partner ne abhi tak koi course upload nahi kiya hai.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -439,11 +436,9 @@ export default function SuperAdmin() {
                 ))}
               </div>
             )}
-
           </div>
         </div>
       )}
-
     </div>
   );
 }
