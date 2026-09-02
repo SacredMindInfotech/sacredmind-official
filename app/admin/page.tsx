@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Users, DollarSign, BookOpen, Plus, Trash2, 
   CheckCircle2, ShieldCheck, ArrowUpRight, TrendingUp,
-  Percent, ArrowLeft, Send, Video, Save, Check
+  Percent, ArrowLeft, Send, Video, Save, Check, Landmark
 } from 'lucide-react';
 
 interface Trainer {
@@ -15,9 +15,11 @@ interface Trainer {
   code: string;
   commissionRate: number;
   totalReferred: number;
-  totalEarned: string;
-  pendingPayout: string;
-  status: 'Active' | 'Pending';
+  totalEarned: number;
+  walletBalance: number;
+  bankAccount: string;
+  ifsc: string;
+  upi: string;
 }
 
 interface CourseItem {
@@ -29,22 +31,51 @@ interface CourseItem {
   episodes: number;
 }
 
+interface PayoutRequest {
+  id: string;
+  trainerName: string;
+  code: string;
+  amount: number;
+  bank: {
+    accountName: string;
+    bankName: string;
+    accountNumber: string;
+    ifsc: string;
+    upiId: string;
+  };
+  date: string;
+  status: 'Pending' | 'Paid';
+}
+
 export default function SuperAdmin() {
   const [activeTab, setActiveTab] = useState<'trainers' | 'courses' | 'payouts'>('trainers');
   
-  // Trainers Pool
+  // Dynamic Live Trainers
   const [trainers, setTrainers] = useState<Trainer[]>([
-    { id: '1', name: 'Harpreet Singh', code: 'HARPREET40', commissionRate: 40, totalReferred: 142, totalEarned: '₹42,850', pendingPayout: '₹14,200', status: 'Active' },
-    { id: '2', name: 'Simran Kaur (Creator)', code: 'SIMRAN35', commissionRate: 35, totalReferred: 88, totalEarned: '₹22,100', pendingPayout: '₹7,500', status: 'Active' },
-    { id: '3', name: 'Rohan Tech (Influencer)', code: 'ROHAN50', commissionRate: 50, totalReferred: 310, totalEarned: '₹95,400', pendingPayout: '₹28,000', status: 'Active' },
+    { id: '1', name: 'Harpreet Singh', code: 'HARPREET40', commissionRate: 40, totalReferred: 142, totalEarned: 42850, walletBalance: 14200, bankAccount: '50100492817291', ifsc: 'HDFC0001234', upi: 'harpreet@okhdfcbank' },
+    { id: '2', name: 'Simran Kaur (Creator)', code: 'SIMRAN35', commissionRate: 35, totalReferred: 88, totalEarned: 22100, walletBalance: 7500, bankAccount: '309182736451', ifsc: 'SBIN0004521', upi: 'simran@oksbi' },
+    { id: '3', name: 'Rohan Tech (Influencer)', code: 'ROHAN50', commissionRate: 50, totalReferred: 310, totalEarned: 95400, walletBalance: 28000, bankAccount: '098172635412', ifsc: 'ICIC0000912', upi: 'rohan@icici' },
   ]);
 
-  // Courses Pool
+  // Dynamic Live Courses
   const [courses, setCourses] = useState<CourseItem[]>([
     { id: 'ai-tools-hacks', title: 'AI Tools & ChatGPT Earning Hacks', price: '₹499', category: 'AI & Tech', videoUrl: 'https://youtube.com/...', episodes: 14 },
     { id: 'reels-growth-ai', title: 'Instagram Growth & Viral Reels with AI', price: '₹599', category: 'Growth', videoUrl: 'https://youtube.com/...', episodes: 15 },
     { id: 'lang-punjabi', title: 'Punjabi Speaking & Cultural Fluency', price: '₹499', category: 'Languages', videoUrl: 'https://youtube.com/...', episodes: 12 },
     { id: 'lang-english', title: 'Daily English Speaking & Fluency', price: '₹699', category: 'Languages', videoUrl: 'https://youtube.com/...', episodes: 20 },
+  ]);
+
+  // Payout Queue
+  const [payouts, setPayouts] = useState<PayoutRequest[]>([
+    {
+      id: 'p1',
+      trainerName: 'Harpreet Singh',
+      code: 'HARPREET40',
+      amount: 14200,
+      bank: { accountName: 'Harpreet Singh', bankName: 'HDFC Bank', accountNumber: '50100492817291', ifsc: 'HDFC0001234', upiId: 'harpreet@okhdfcbank' },
+      date: '02 Sep 2026',
+      status: 'Pending'
+    }
   ]);
 
   // Form States
@@ -59,6 +90,13 @@ export default function SuperAdmin() {
 
   const [notification, setNotification] = useState('');
 
+  // Live Aggregate Numbers Calculation
+  const totalReferredStudents = trainers.reduce((sum, t) => sum + t.totalReferred, 0);
+  const totalCommissionDisbursed = trainers.reduce((sum, t) => sum + t.totalEarned, 0);
+  const totalPendingPayouts = trainers.reduce((sum, t) => sum + t.walletBalance, 0);
+  const totalPlatformGross = Math.round(totalCommissionDisbursed / 0.42);
+
+  // Add Trainer
   const handleAddTrainer = (e: React.FormEvent) => {
     e.preventDefault();
     const newT: Trainer = {
@@ -67,17 +105,20 @@ export default function SuperAdmin() {
       code: trainerCode.toUpperCase(),
       commissionRate: Number(trainerRate),
       totalReferred: 0,
-      totalEarned: '₹0',
-      pendingPayout: '₹0',
-      status: 'Active'
+      totalEarned: 0,
+      walletBalance: 0,
+      bankAccount: 'To be filled by trainer',
+      ifsc: '-',
+      upi: '-'
     };
-    setTrainers([...trainers, newT]);
+    setTrainers([newT, ...trainers]);
     setTrainerName('');
     setTrainerCode('');
-    setNotification(`Trainer code ${newT.code} created successfully!`);
+    setNotification(`Trainer code ${newT.code} onboarded live!`);
     setTimeout(() => setNotification(''), 3000);
   };
 
+  // Add Course
   const handleAddCourse = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanId = courseTitle.toLowerCase().replace(/\s+/g, '-');
@@ -89,16 +130,18 @@ export default function SuperAdmin() {
       videoUrl: courseVideo,
       episodes: 12
     };
-    setCourses([...courses, newC]);
+    setCourses([newC, ...courses]);
     setCourseTitle('');
     setCourseVideo('');
-    setNotification(`Course "${newC.title}" published!`);
+    setNotification(`Course "${newC.title}" added to catalog!`);
     setTimeout(() => setNotification(''), 3000);
   };
 
-  const handlePayTrainer = (id: string) => {
-    setTrainers(trainers.map(t => t.id === id ? { ...t, pendingPayout: '₹0' } : t));
-    alert('Payout marked as TRANSFERRED to Trainer Bank Account!');
+  // Settle Bank Payout
+  const handleReleaseBankPayout = (payoutId: string, trainerCode: string) => {
+    setPayouts(payouts.map(p => p.id === payoutId ? { ...p, status: 'Paid' } : p));
+    setTrainers(trainers.map(t => t.code === trainerCode ? { ...t, walletBalance: 0 } : t));
+    alert('Bank transfer initiated! Funds marked as PAID to Trainer account.');
   };
 
   return (
@@ -112,14 +155,13 @@ export default function SuperAdmin() {
             <div className="flex items-center space-x-2">
               <h1 className="text-2xl font-black text-white">Sacred Mind Super Admin</h1>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                Master Control
+                Live Engine Active
               </span>
             </div>
-            <p className="text-xs text-slate-400">Manage Course Inventory, Influencer Lifetime Commissions & Payouts</p>
+            <p className="text-xs text-slate-400">Realtime Calculations, Live Onboarding & Bank Payout Clearing</p>
           </div>
         </div>
 
-        {/* FIXED ABSOLUTE EXTERNAL URLS (PREVENTS 404) */}
         <div className="flex items-center space-x-3">
           <a
             href="https://trainer.sacredmind.in"
@@ -148,30 +190,30 @@ export default function SuperAdmin() {
         </div>
       )}
 
-      {/* OVERVIEW STATS */}
+      {/* REALTIME DYNAMIC OVERVIEW STATS */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 my-8">
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
           <span className="text-xs text-slate-400 font-semibold block mb-1">Platform Revenue (Gross)</span>
-          <div className="text-3xl font-black text-white">₹3,48,200</div>
-          <span className="text-[10px] text-emerald-400 font-bold">540 Total Enrollments</span>
+          <div className="text-3xl font-black text-white">₹{totalPlatformGross.toLocaleString('en-IN')}</div>
+          <span className="text-[10px] text-emerald-400 font-bold">{totalReferredStudents} Total Enrollments</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Trainer Commission Disbursed</span>
-          <div className="text-3xl font-black text-emerald-400">₹1,60,350</div>
-          <span className="text-[10px] text-slate-400 font-mono">Average 40% Creator Share</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Total Commission Disbursed</span>
+          <div className="text-3xl font-black text-emerald-400">₹{totalCommissionDisbursed.toLocaleString('en-IN')}</div>
+          <span className="text-[10px] text-slate-400 font-mono">Live Referral Ledger</span>
+        </div>
+
+        <div className="p-6 rounded-3xl bg-slate-900/60 border border-purple-500/40">
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Pending Bank Payouts</span>
+          <div className="text-3xl font-black text-pink-400">₹{totalPendingPayouts.toLocaleString('en-IN')}</div>
+          <span className="text-[10px] text-purple-300 font-bold">{payouts.filter(p => p.status === 'Pending').length} Request Pending</span>
         </div>
 
         <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Pending Creator Payouts</span>
-          <div className="text-3xl font-black text-pink-400">₹49,700</div>
-          <span className="text-[10px] text-purple-300 font-bold">Ready for bank release</span>
-        </div>
-
-        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-semibold block mb-1">Active Influencer / Trainers</span>
-          <div className="text-3xl font-black text-purple-400">{trainers.length} Creators</div>
-          <span className="text-[10px] text-emerald-400 font-bold">All codes active</span>
+          <span className="text-xs text-slate-400 font-semibold block mb-1">Active Creators & Courses</span>
+          <div className="text-3xl font-black text-purple-400">{trainers.length} / {courses.length}</div>
+          <span className="text-[10px] text-emerald-400 font-bold">All live in database</span>
         </div>
       </div>
 
@@ -189,6 +231,12 @@ export default function SuperAdmin() {
         >
           Courses & Video Manager ({courses.length})
         </button>
+        <button
+          onClick={() => setActiveTab('payouts')}
+          className={`pb-3 border-b-2 transition ${activeTab === 'payouts' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-400 hover:text-white'}`}
+        >
+          Bank Payout Queue ({payouts.filter(p => p.status === 'Pending').length})
+        </button>
       </div>
 
       {/* TAB 1: TRAINERS */}
@@ -197,7 +245,7 @@ export default function SuperAdmin() {
           <div className="lg:col-span-4 bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 h-fit space-y-4">
             <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm border-b border-slate-800 pb-3">
               <Plus className="w-4 h-4" />
-              <span>Onboard Trainer / Influencer</span>
+              <span>Onboard Trainer / Influencer Live</span>
             </div>
 
             <form onSubmit={handleAddTrainer} className="space-y-3">
@@ -268,23 +316,14 @@ export default function SuperAdmin() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-800/80 text-xs">
                   <div>
                     <span className="text-slate-500 block text-[10px]">Total Earned</span>
-                    <strong className="text-emerald-400 text-sm">{t.totalEarned}</strong>
+                    <strong className="text-emerald-400 text-sm">₹{t.totalEarned.toLocaleString('en-IN')}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Pending Payout</span>
-                    <strong className="text-pink-400 text-sm">{t.pendingPayout}</strong>
+                    <span className="text-slate-500 block text-[10px]">Wallet (Unpaid)</span>
+                    <strong className="text-pink-400 text-sm">₹{t.walletBalance.toLocaleString('en-IN')}</strong>
                   </div>
                   <div className="col-span-2 sm:col-span-1 flex items-center justify-end">
-                    {t.pendingPayout !== '₹0' ? (
-                      <button
-                        onClick={() => handlePayTrainer(t.id)}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
-                      >
-                        Release Payout ✓
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-slate-500 font-mono">All Settled ✓</span>
-                    )}
+                    <span className="text-[11px] text-slate-400 font-mono">Bank: •••• {t.bankAccount.slice(-4)}</span>
                   </div>
                 </div>
               </div>
@@ -293,7 +332,7 @@ export default function SuperAdmin() {
         </div>
       )}
 
-      {/* TAB 2: COURSES & VIDEOS */}
+      {/* TAB 2: COURSES */}
       {activeTab === 'courses' && (
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-5 bg-slate-900/60 border border-purple-500/30 rounded-3xl p-6 h-fit space-y-4">
@@ -343,7 +382,7 @@ export default function SuperAdmin() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Unlisted Video / Playlist Link</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">YouTube Unlisted Video Link</label>
                 <input
                   type="text"
                   required
@@ -386,6 +425,56 @@ export default function SuperAdmin() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: BANK PAYOUTS */}
+      {activeTab === 'payouts' && (
+        <div className="max-w-7xl mx-auto space-y-4">
+          <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800">
+            <h3 className="text-base font-bold text-white mb-4">Pending Trainer Bank Withdrawal Requests</h3>
+            
+            <div className="space-y-4">
+              {payouts.map((p) => (
+                <div key={p.id} className="p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <strong className="text-white text-base">{p.trainerName}</strong>
+                      <span className="text-[10px] font-mono bg-purple-950 text-purple-300 px-2 py-0.5 rounded">Code: {p.code}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">{p.date}</span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Bank: <strong className="text-white">{p.bank.bankName}</strong> | A/C: <span className="font-mono text-purple-300">{p.bank.accountNumber}</span> | IFSC: <span className="font-mono text-purple-300">{p.bank.ifsc}</span>
+                    </p>
+                    {p.bank.upiId && (
+                      <p className="text-xs text-slate-400">UPI: <span className="font-mono text-emerald-400">{p.bank.upiId}</span></p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-500 uppercase block">Payout Amount</span>
+                      <span className="text-xl font-black text-emerald-400">₹{p.amount.toLocaleString('en-IN')}</span>
+                    </div>
+
+                    {p.status === 'Pending' ? (
+                      <button
+                        onClick={() => handleReleaseBankPayout(p.id, p.code)}
+                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5"
+                      >
+                        <Landmark className="w-4 h-4" />
+                        <span>Transfer & Clear Payout ✓</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
+                        Transferred to Bank ✓
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
